@@ -1,4 +1,4 @@
-# Gudang FG — Serena Indopapangan
+# WMS (Warehouse Managemant System) V.10
 
 Struktur tiga lapis: **frontend**, **backend**, dan **API** yang
 menghubungkan keduanya.
