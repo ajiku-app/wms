@@ -1,0 +1,21 @@
+# Setiap kali ada tag "v*" (mis. v2.0.2), GitHub membangun installer Windows
+# dan mengunggahnya ke Releases. Tidak perlu token pribadi.
+name: Release Windows
+on:
+  push:
+    tags: ['v*']
+permissions:
+  contents: write
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 20 }
+      - run: npm install
+        working-directory: desktop
+      - run: npx electron-builder --win --x64 --publish always
+        working-directory: desktop
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

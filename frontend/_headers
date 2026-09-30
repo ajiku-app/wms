@@ -1,0 +1,7 @@
+# Netlify / Cloudflare Pages: header keamanan (frame-ancestors hanya bisa lewat header, bukan <meta>)
+/*
+  Content-Security-Policy: frame-ancestors 'none'
+  X-Frame-Options: DENY
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: no-referrer
+  Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=()
