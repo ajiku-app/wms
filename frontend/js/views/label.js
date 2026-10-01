@@ -23,6 +23,8 @@ function qr(code) {
   return '';
 }
 const fullBatch = (b) => bno(b.sku, b.batch);
+// nomor urut batch naik per pallet: ...20280310.001 -> .002 -> .003 (lebar digit dipertahankan)
+const bumpBatch = (batch, k) => { const m = String(batch).match(/^(.*?)(\d+)$/); return m ? m[1] + String(parseInt(m[2], 10) + k - 1).padStart(m[2].length, '0') : batch; };
 const oneLabel = (b) => `<div class="lb"><div class="lh"><span>Serena Indopapangan / Gudang FG</span><span>${esc(b.no)}</span></div>
 <div class="lbody"><div class="linfo"><div><div class="ls">${esc(b.sku)}</div><div class="ln">${esc(b.nama || '')}</div></div>
 <div class="lg"><div class="full"><small>Batch</small><b>${esc(fullBatch(b))}</b></div><div class="hi"><small>Kedaluwarsa (ED)</small>${esc(b.exp)}</div><div><small>Tgl produksi</small>${esc(b.prod || '—')}</div>
@@ -32,7 +34,7 @@ const oneLabel = (b) => `<div class="lb"><div class="lh"><span>Serena Indopapang
 const labelsHTML = (L) => { let h = ''; for (let i = 0; i < L.length; i += 9) h += `<div class="pg">${L.slice(i, i + 9).map(oneLabel).join('')}</div>`; return h; };
 
 // ---- Dialog cetak label (pengganti prompt bawaan browser) ----
-let LB = null;
+let LB = null, LP = '';
 const perOf = (i) => Math.max(0, parseInt(document.getElementById('lp' + i)?.value, 10) || 0);
 const qtyOf = (x) => x.qty_received || x.qty_pl;
 const plan = (q, per) => { if (!per || q <= per) return { n: 1, last: q, per: q }; const n = Math.ceil(q / per); return { n, last: q - per * (n - 1), per }; };
@@ -80,11 +82,15 @@ export function registerLabelActions(A) {
       for (let k = 1; k <= n; k++) {
         const qq = k < n ? per : q - per * (n - 1);
         const no3 = String(k).padStart(3, '0');
-        L.push({ ...base, q: qq, pcs: qq * ppc, pal: no3 + '/' + String(n).padStart(3, '0'), svg: qr(x.sku + '|' + x.batch + '|' + no3) });
+        L.push({ ...base, batch: bumpBatch(x.batch, k), q: qq, pcs: qq * ppc, pal: no3 + '/' + String(n).padStart(3, '0'), svg: qr(x.sku + '|' + x.batch + '|' + no3) });
       }
     });
-    A.mx(); LB = null;
-    $('#lbl').innerHTML = labelsHTML(L);
+    LB = null; LP = labelsHTML(L);
+    modal('Pratinjau Label — ' + no, `<p class="l" style="margin:0 0 8px">${L.length} label · ${Math.ceil(L.length / 9)} lembar A4 (landscape). Periksa dulu, lalu klik Cetak.</p><div class="pvw"><div class="pvz">${LP}</div></div>`, 'Cetak', 'lblPrint', '', '', 'wide');
+  };
+  A.lblPrint = () => {
+    if (!LP) return;
+    $('#lbl').innerHTML = LP;
     window.addEventListener('afterprint', () => { $('#lbl').innerHTML = ''; }, { once: true });
     setTimeout(() => { try { window.print(); } catch (e) { toast('Cetak diblokir browser.'); } }, 50);
   };

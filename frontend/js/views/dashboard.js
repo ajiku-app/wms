@@ -7,7 +7,9 @@ const WARN = 60, FULL = 90; // ambang okupansi rak (%): kuning >= 60, merah >= 9
 let RK = []; // rak aktif dari dashboard terakhir (dipakai popup per blok)
 const pct = (u, c) => c > 0 ? Math.round(u / c * 100) : null;
 const lvl = (p) => p === null ? 'na' : p >= FULL ? 'full' : p >= WARN ? 'warn' : '';
-const rackTile = (r) => { const p = pct(r.used, r.capacity); return `<button class="rt ${lvl(p)}" data-a="rackOpen" data-v="${esc(r.code)}"><b>${esc(r.code)}</b><span>${p === null ? esc(fmt(r.used) + ' ctn') : esc(p + '% · ' + fmt(r.used) + '/' + fmt(r.capacity))}</span></button>`; };
+const ST = { full: 'Penuh', part: 'Tersisa', empty: 'Kosong' };
+const stOf = (used, cap) => !(used > 0) ? 'empty' : (cap > 0 && used >= cap) ? 'full' : 'part'; // kosong abu, terisi kuning, penuh merah
+const rackTile = (r) => { const s = stOf(r.used, r.capacity); return `<button class="rt ${s}" data-a="rackOpen" data-v="${esc(r.code)}"><b>${esc(r.code)}</b><span>${esc(ST[s])}</span><small>${esc(fmt(r.used || 0) + (r.capacity > 0 ? '/' + fmt(r.capacity) : '') + ' ctn')}</small></button>`; };
 const blokOf = (r) => String(r.code).charAt(0).toUpperCase();
 
 export async function renderDashboard() {
@@ -27,15 +29,16 @@ export async function renderDashboard() {
   RK = (d.racks || []).filter(r => r.active);
   const blok = {};
   RK.forEach(r => { const b = blok[blokOf(r)] ||= { n: 0, used: 0, cap: 0 }; b.n++; b.used += r.used || 0; b.cap += r.capacity || 0; });
+  const cnt = { full: 0, part: 0, empty: 0 };
   const tiles = Object.keys(blok).sort().map(k => {
-    const b = blok[k], p = pct(b.used, b.cap);
-    return `<button class="rt g ${lvl(p)}" data-a="blokOpen" data-v="${esc(k)}"><b>Rak ${esc(k)}</b><span>${p === null ? esc(fmt(b.used) + ' ctn') : esc(p + '% · ' + fmt(b.used) + '/' + fmt(b.cap))}</span><i><u style="width:${Math.min(p || 0, 100)}%"></u></i><small>${esc(b.n)} lokasi</small></button>`;
+    const b = blok[k], s = stOf(b.used, b.cap); cnt[s]++;
+    return `<button class="rt g ${s}" data-a="blokOpen" data-v="${esc(k)}"><b>Rak ${esc(k)}</b><span>${esc(ST[s])}</span><small>${esc(fmt(b.used) + (b.cap > 0 ? '/' + fmt(b.cap) : '') + ' ctn · ' + b.n + ' lokasi')}</small></button>`;
   }).join('');
 
   $('#main').innerHTML = `<div class="kpis">${kpi('Total stok (ctn)', fmt(d.total))}${kpi('Tersedia untuk FEFO', fmt(d.available))}${kpi('Inbound / outbound proses', d.inbound_open + ' / ' + d.outbound_open)}${kpi('Exception terbuka', d.exceptions, d.exceptions > 0 ? 'bad' : '', exTip)}</div>
   <div class="two"><div class="card"><div class="ch"><h3>Inbound dan outbound 7 hari (ctn)</h3><span class="lg2">oranye masuk · biru keluar</span></div><div class="bars">${bars}</div></div>
   <div class="card"><div class="ch"><h3>Aging stok berdasarkan ED (ctn)</h3></div><div class="bars">${abars}</div><div class="cap">Kedaluwarsa: ${fmt(a.exp)} ctn · ≤ 90 hari: ${fmt((a.b0 || 0) + (a.b1 || 0))} ctn</div></div></div>
-  <div class="card dbc"><div class="ch"><h3>Okupansi rak</h3><span class="lg2">klik blok rak untuk melihat detail</span></div><div class="rts grp">${tiles || '<span class="l">Belum ada rak.</span>'}</div></div>`;
+  <div class="card dbc"><div class="ch"><h3>Okupansi rak</h3><span class="lg2">${cnt.full} penuh · ${cnt.part} masih tersisa · ${cnt.empty} kosong</span></div><div class="rts grp">${tiles || '<span class="l">Belum ada rak.</span>'}</div><div class="leg"><i class="full"></i>Penuh<i class="part"></i>Terisi<i class="empty"></i>Kosong<span>· klik blok rak untuk detail</span></div></div>`;
 }
 
 export function registerDashboardActions(A) {

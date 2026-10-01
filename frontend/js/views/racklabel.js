@@ -28,7 +28,10 @@ const items = () => {
   return RACKS.map(r => { const m = /^([A-Z]+)-(\d+)-(\d+)$/.exec(r.code); return m && m[1] === L && +m[2] >= a && +m[2] <= b ? { code: r.code, L, bim: +m[2], lv: +m[3] } : null; })
     .filter(Boolean).sort((x, y) => x.bim - y.bim || x.lv - y.lv);
 };
-const html = (it) => it.map(x => label(x.code, `Rak ${x.L} · Bim ${x.bim} · Level ${x.lv}`, x.lv === 1 ? 'down' : 'up')).join('');
+const labels = (it) => it.map(x => label(x.code, `Rak ${x.L} · Bim ${x.bim} · Level ${x.lv}`, x.lv === 1 ? 'down' : 'up'));
+const html = (it) => labels(it).join('');
+// 12 label per lembar A4 landscape (3 kolom x 4 baris)
+const pages = (arr) => { let h = ''; for (let i = 0; i < arr.length; i += 12) h += `<div class="rkpg">${arr.slice(i, i + 12).join('')}</div>`; return h; };
 
 export async function renderRackLabel() {
   RACKS = await api.listRacks();
@@ -46,10 +49,10 @@ export function registerRackLabelActions(A) {
   const printHTML = async (h) => {
     await jsbP;
     if (!h) return toast('Tidak ada rak untuk dicetak.');
-    $('#lbl').innerHTML = `<div class="rkpg">${h}</div>`;
+    $('#lbl').innerHTML = h;
     window.addEventListener('afterprint', () => { $('#lbl').innerHTML = ''; }, { once: true });
     try { window.print(); } catch (e) { toast('Cetak diblokir browser.'); }
   };
-  A.rkPrint = () => printHTML(html(items()));
-  A.rkArea = () => printHTML(label('NON-RACK', 'Area non racking', null) + label('GR-STAGING', 'Area transit barang masuk', null));
+  A.rkPrint = () => printHTML(pages(labels(items())));
+  A.rkArea = () => printHTML(pages([label('NON-RACK', 'Area non racking', null), label('GR-STAGING', 'Area transit barang masuk', null)]));
 }

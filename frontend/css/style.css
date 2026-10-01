@@ -150,3 +150,30 @@ aside{display:flex;flex-direction:column}aside.hide{display:none}
 [data-theme=light] .sf{background:#0f1a33}
 [data-theme=light] .av{color:#14110a}
 [data-theme=light] aside .btn.o{background:none;color:var(--ink);border-color:#ffffff33}[data-theme=light] aside .btn.o:hover:not(:disabled){border-color:#e6cf9a;color:#e6cf9a}
+
+/* ===== v2.0.8 ===== */
+[data-theme=light] .lgc input{background:rgba(255,255,255,.12);border-color:rgba(255,255,255,.4);color:#fff}
+.rt.full,.rt.part,.rt.empty{border-color:transparent}
+.rt.full{background:#d9263b}.rt.part{background:#fbb92d}.rt.empty{background:#dfe2df}
+.rt.full b,.rt.full span,.rt.full small{color:#fff}
+.rt.part b,.rt.part span,.rt.part small{color:#2b1e03}
+.rt.empty b,.rt.empty span,.rt.empty small{color:#2c312d}
+.rt.g b{font-size:16px}.rt.g span{font-size:12.5px;font-weight:600}
+.leg{display:flex;align-items:center;gap:6px;margin-top:12px;font-size:12px;color:var(--mut)}.leg i{width:12px;height:12px;border-radius:4px;display:inline-block;margin-left:10px}.leg i:first-child{margin-left:0}.leg i.full{background:#d9263b}.leg i.part{background:#fbb92d}.leg i.empty{background:#dfe2df}
+.pvw{max-height:64vh;overflow:auto;background:#0c0e12;border:1px solid var(--line);border-radius:8px;padding:10px}
+.pvz{zoom:.7}.pvz .pg{break-after:auto;page-break-after:auto;margin:0 0 14px;box-shadow:0 2px 14px #0009}
+
+/* ===== Label rak: pratinjau ringkas (3 kolom) & cetak 12 label per A4 ===== */
+.flt{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin-bottom:14px}.flt .btn{align-self:flex-end}.flt .l{align-self:center}
+.rkg{display:grid;grid-template-columns:repeat(auto-fill,230px);gap:10px}
+.rk{width:230px;box-sizing:border-box;background:#fff;color:#000;border:1px solid #888;border-radius:3px;padding:8px 10px;display:flex;flex-direction:column;gap:4px;font-family:Roboto,Arial,sans-serif}
+.rk *{color:#000!important}
+.rk-t{display:flex;justify-content:space-between;align-items:center;gap:6px}
+.rk-c{font-weight:700;font-size:26px;line-height:1;letter-spacing:.01em}
+.rk-a{width:22px;height:30px;flex:none}.rk-a svg{width:100%;height:100%;display:block;fill:#000}
+.rk-s{font-size:9px;line-height:1.2}
+.rk-b{height:38px;min-height:0}.rk-b svg{width:100%;height:100%;display:block}
+.rkpg{width:297mm;height:209mm;padding:8mm;box-sizing:border-box;display:grid;grid-template-columns:repeat(3,1fr);grid-auto-rows:44mm;gap:4mm;align-content:start;background:#fff;break-after:page;page-break-after:always;overflow:hidden}
+.rkpg:last-child{break-after:auto;page-break-after:auto}
+.rkpg .rk{width:auto;height:44mm;padding:3mm 4mm;gap:1.5mm;border:.3mm solid #000;border-radius:0}
+.rkpg .rk-c{font-size:28pt}.rkpg .rk-a{width:7mm;height:9.5mm}.rkpg .rk-s{font-size:8pt}.rkpg .rk-b{flex:1}
