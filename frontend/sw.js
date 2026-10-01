@@ -1,6 +1,6 @@
 // Service worker: membuat aplikasi bisa di-install (PWA) & memuat cepat.
 // Data Supabase TIDAK pernah di-cache (selalu langsung ke jaringan).
-const VERSION = 'wms-v2';
+const VERSION = 'wms-v3';
 const SHELL = `${VERSION}-shell`;
 const LIB = `${VERSION}-lib`;
 const SHELL_FILES = [
