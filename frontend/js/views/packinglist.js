@@ -1,5 +1,5 @@
 import { api } from '../api.js';
-import { bno, askText, $, hd, T, bar, bt, ic, tag, sel, inp, v, fmt, modal, toast, rpcErr, findFreeNo, esc } from '../ui.js';
+import { bno, askText, askConfirm, $, hd, T, bar, bt, ic, tag, sel, inp, v, fmt, modal, toast, rpcErr, findFreeNo, esc } from '../ui.js';
 
 async function skuSelect(id) {
   const rows = await api.listActiveProducts();
@@ -13,8 +13,11 @@ export async function renderPackingList(go, W, back) {
       `<div class="card"><div class="row">${sel('plS', 'Pemasok*', sup.map(s => [s.name, s.Whs ? s.Whs + ' — ' + s.name : s.name]))}<button class="btn o s" data-a="supNew">+ Pemasok baru</button>${inp('plT', 'Tanggal input FG', new Date().toISOString().slice(0,10), 'date')}<button class="btn" data-a="plCreate">Buat Packing List</button></div></div>`;
     return;
   }
-  const rows = await api.listPackingLists(), wmap = await api.supplierWhs();
-  $('#main').innerHTML = hd('Packing List — Pemasok') + `<div class="card">${bar(bt('newW', '+ Tambah'))}${T(['Tanggal input FG', 'Kode', 'Whs', 'Pemasok', 'Status', 'Aksi'], rows.map(p => `<tr><td>${esc(p.doc_date)}</td><td>${esc(p.no)}</td><td>${esc(wmap[p.supplier] || '—')}</td><td>${esc(p.supplier)}</td><td>${tag(p.status, p.status === 'open' ? 'Menunggu' : 'Terpakai')}</td><td>${ic('plV', p.no, 'Lihat')}</td></tr>`))}</div>`;
+  const rows = await api.listPackingLists(), wmap = await api.supplierWhs(), gmap = await api.packingListGr();
+  const acts = (p) => p.status === 'open'
+    ? ic('plV', p.no, 'Lihat') + ' ' + ic('plEdit', p.no, 'Edit') + ' ' + ic('plDel', p.no, 'Hapus', 'r')
+    : ic('plV', p.no, 'Lihat') + ' <button class="btn o s" disabled title="Packing List sudah dipakai Inbound">Edit</button> <button class="btn o s" disabled title="Packing List sudah dipakai Inbound">Hapus</button>';
+  $('#main').innerHTML = hd('Packing List — Pemasok') + `<div class="card">${bar(bt('newW', '+ Tambah'))}${T(['Tanggal input FG', 'Kode', 'Whs', 'Pemasok', 'GR', 'Status', 'Aksi'], rows.map(p => `<tr><td>${esc(p.doc_date)}</td><td>${esc(p.no)}</td><td>${esc(wmap[p.supplier] || '—')}</td><td>${esc(p.supplier)}</td><td>${esc((gmap[p.no] || []).join(', ') || '—')}</td><td>${tag(p.status, p.status === 'open' ? 'Menunggu' : 'Terpakai')}</td><td>${acts(p)}</td></tr>`))}</div>`;
 }
 
 // Batch otomatis per PALLET: <prefix SKU>.<YYYYMMDD ED>.<NNN>, mis. FGKGTN.001.20280310.003
@@ -82,6 +85,33 @@ export function registerPackingListActions(A, go) {
       K.addEventListener('input', plPrev);
       plPrev();
     }
+  };
+  A.plEdit = async (no) => {
+    try {
+      const h = await api.getPackingList(no);
+      if (h.status !== 'open') return toast('Packing List sudah dipakai, tidak bisa diedit.');
+      const sup = await api.listActiveSuppliers();
+      const names = sup.map(s => s.name); if (!names.includes(h.supplier)) names.unshift(h.supplier);
+      const gr = (await api.packingListGr())[no] || [];
+      modal('Edit Packing List ' + no,
+        `<div class="row">${sel('plES', 'Pemasok*', names.map(n => { const s = sup.find(x => x.name === n); return [n, s && s.Whs ? s.Whs + ' — ' + n : n]; }))}${inp('plET', 'Tanggal input FG', h.doc_date, 'date')}${inp('plEG', 'No GR (SAP)', gr.length === 1 ? gr[0] : '')}</div><p class="note" style="margin:8px 0 12px">${gr.length > 1 ? 'GR saat ini: ' + esc(gr.join(', ')) + '. ' : ''}No GR yang diisi akan diterapkan ke semua baris item; kosongkan jika tidak ingin mengubah GR.</p>`,
+        'Simpan', 'plSave', no);
+      document.getElementById('plES').value = h.supplier;
+    } catch (e) { rpcErr(e); }
+  };
+  A.plSave = async (no) => {
+    const s = v('plES'), d = v('plET');
+    if (!s) return toast('Pilih pemasok.');
+    if (!d) return toast('Isi tanggal input FG.');
+    try {
+      await api.updatePackingList(no, s, d, v('plEG').trim());
+      toast('Packing List diperbarui: ' + no);
+      await A.mx?.(); go('pl', null);
+    } catch (e) { rpcErr(e); }
+  };
+  A.plDel = async (no) => {
+    if (!await askConfirm('Hapus Packing List', 'Hapus Packing List ' + no + ' beserta seluruh baris itemnya? Tindakan ini tidak bisa dibatalkan.', 'Hapus')) return;
+    try { await api.deletePackingList(no); toast('Packing List dihapus: ' + no); go('pl', null); } catch (e) { rpcErr(e); }
   };
   A.plAddLine = async (no) => {
     const k = v('plK'), e = v('plE'), q = +v('plQ'), gr = v('plG').trim(), prod = v('plPr'), perRaw = v('plPer').trim(), per = parseInt(perRaw, 10);

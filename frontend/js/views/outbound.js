@@ -3,6 +3,22 @@ import { bno, askConfirm, askText, $, hd, T, bar, bt, ic, tag, sel, inp, v, fmt,
 
 let dob = []; // baris SKU+qty sementara sebelum outbound dibuat
 let form = {}; // isian form (warehouse, customer, dst) agar tidak hilang saat halaman digambar ulang
+// Item pesanan disimpan per dokumen agar tombol Picking List tetap bisa dipakai setelah halaman dimuat ulang
+const itemsKey = (no) => 'wms_ob_items_' + no;
+const saveItems = (no, items) => { try { localStorage.setItem(itemsKey(no), JSON.stringify(items)); } catch (e) { /* abaikan */ } };
+const loadItems = (no) => { try { return JSON.parse(localStorage.getItem(itemsKey(no)) || 'null') || []; } catch (e) { return []; } };
+// Kekurangan alokasi per SKU = jumlah diminta - jumlah yang sudah masuk picking list
+const shortOf = (items, picks) => items.map(it => ({ sku: it.sku, kurang: it.qty - picks.filter(p => p.sku === it.sku).reduce((a, p) => a + p.qty, 0) })).filter(x => x.kurang > 0);
+// Alokasi FEFO hanya untuk kekurangan; hasilnya daftar SKU yang stoknya (di luar GR-STAGING) belum cukup
+async function allocateShort(no, items) {
+  const picks = await api.listOutboundPicks(no);
+  const gagal = [];
+  for (const x of shortOf(items, picks)) {
+    const sisa = await api.fefoAllocate(no, x.sku, x.kurang);
+    if (+sisa > 0) gagal.push(x.sku + ' kurang ' + fmt(+sisa) + ' ctn');
+  }
+  return gagal;
+}
 const keep = () => { form = { ow: v('ow'), ot: v('ot'), oc: v('oc'), otl: v('otl'), oa: v('oa') }; };
 
 async function skuSelect(id) {
@@ -24,10 +40,11 @@ export async function renderOutbound(go, W, back) {
     const o = await api.getOutboundDoc(W);
     const picks = await api.listOutboundPicks(W);
     await api.whsEnsure(picks);
+    const kurangList = o.status === 'open' ? shortOf(loadItems(o.no), picks) : [];
     $('#main').innerHTML = hd('Outbound — ' + o.no, back) +
       `<div class="card"><div class="ch"><h3>Informasi Pemesanan</h3>${tag(o.status, o.status === 'open' ? 'Proses' : 'Selesai')}</div><div class="kv"><span>Kode</span><b>${esc(o.no)}</b><span>Tanggal</span><b>${esc(o.doc_date)}</b><span>Warehouse</span><b>${esc(o.whs || '—')}</b></div><h3 style="margin:14px 0 6px">Informasi Pelanggan</h3><div class="kv"><span>Nama</span><b>${esc(o.customer_name)}</b><span>No. Telepon</span><b>${esc(o.customer_phone || '—')}</b><span>Alamat</span><b>${esc(o.customer_address || '—')}</b></div></div>
-      <div class="card"><h3 style="margin-bottom:10px">Picking List (FEFO)</h3>${picks.length ? T(['Urutan', 'SKU', 'Whs', 'Rak', 'Batch', 'ED', 'Diambil / Target'], picks.map(p => `<tr><td>${esc(p.seq)}</td><td>${esc(p.sku)}</td><td>${esc(api.whsOf(p.sku, p.batch))}</td><td><b>${esc(p.rack_code)}</b></td><td>${esc(bno(p.sku, p.batch))}</td><td>${esc(p.expiry)}</td><td class="num">${fmt(p.picked)} / ${fmt(p.qty)}</td></tr>`)) : '<div class="empty">Belum dialokasikan.</div>'}
-      <p style="text-align:right">${o.status === 'open' && !picks.length ? `<button class="btn" data-a="obAlloc" data-v="${esc(o.no)}">Buat Picking List (FEFO)</button>` : ''}${o.status === 'open' && picks.length ? `<button class="btn o" data-a="obPickAll" data-v="${esc(o.no)}">Tandai Semua Terpick</button> <button class="btn" data-a="obDone" data-v="${esc(o.no)}">Selesai Kirim</button>` : ''}</p></div>`;
+      <div class="card"><h3 style="margin-bottom:10px">Picking List (FEFO)</h3>${picks.length ? T(['Urutan', 'SKU', 'Whs', 'Rak', 'Batch', 'ED', 'Diambil / Target'], picks.map(p => `<tr><td>${esc(p.seq)}</td><td>${esc(p.sku)}</td><td>${esc(api.whsOf(p.sku, p.batch))}</td><td><b>${esc(p.rack_code)}</b></td><td>${esc(bno(p.sku, p.batch))}</td><td>${esc(p.expiry)}</td><td class="num">${fmt(p.picked)} / ${fmt(p.qty)}</td></tr>`)) : '<div class="empty">Belum dialokasikan.</div>'}${kurangList.length ? `<div class="note" style="margin-top:10px">Stok belum cukup: ${kurangList.map(x => esc(x.sku) + ' kurang ' + fmt(x.kurang) + ' ctn').join('; ')}. FEFO hanya mengambil dari rak penyimpanan — barang yang masih di <b>GR-STAGING</b> harus di-<b>Putaway</b> dulu, lalu klik tombol di bawah.</div>` : ''}
+      <p style="text-align:right">${o.status === 'open' && (!picks.length || kurangList.length) ? `<button class="btn" data-a="obAlloc" data-v="${esc(o.no)}">${picks.length ? 'Alokasikan Kekurangan (FEFO)' : 'Buat Picking List (FEFO)'}</button> ` : ''}${o.status === 'open' && picks.length ? `<button class="btn o" data-a="obPickAll" data-v="${esc(o.no)}">Tandai Semua Terpick</button> <button class="btn" data-a="obDone" data-v="${esc(o.no)}">Selesai Kirim</button>` : ''}</p></div>`;
     return;
   }
   const rows = await api.listOutboundDocs();
@@ -50,17 +67,20 @@ export function registerOutboundActions(A, go) {
       await api.createOutboundDoc(no, v('oc'), v('otl'), v('oa'), whs);
       form = {};
       const items = dob.slice(); dob = [];
+      saveItems(no, items);
       toast('Outbound dibuat. Membuat picking list…');
-      window._pendingItems = items;
-      for (const it of items) { try { await api.fefoAllocate(no, it.sku, it.qty); } catch (e) { rpcErr(e); } }
+      try { const g = await allocateShort(no, items); if (g.length) toast('Stok belum cukup: ' + g.join('; ') + '. Putaway dulu dari GR-STAGING.'); } catch (e) { rpcErr(e); }
       go('out', no);
     } catch (e) { rpcErr(e); }
   };
   A.obAlloc = async (no) => {
-    const items = window._pendingItems;
-    if (!items || !items.length) return toast('Tidak ada item tersimpan untuk dialokasikan. Buat ulang outbound.');
-    for (const it of items) { try { await api.fefoAllocate(no, it.sku, it.qty); } catch (e) { return rpcErr(e); } }
-    toast('Picking list dibuat.'); go('out', no);
+    const items = loadItems(no);
+    if (!items.length) return toast('Item pesanan tidak tersimpan di perangkat ini. Buat ulang outbound.');
+    try {
+      const g = await allocateShort(no, items);
+      toast(g.length ? 'Sebagian belum teralokasi: ' + g.join('; ') + '. Putaway dulu dari GR-STAGING.' : 'Picking list dibuat.');
+    } catch (e) { return rpcErr(e); }
+    go('out', no);
   };
   A.obPickAll = async (no) => {
     const picks = await api.listOutboundPicks(no);
