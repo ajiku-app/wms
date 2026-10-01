@@ -1,4 +1,4 @@
-# WMS (Warehouse Managemant System) V.10
+# WMS (Warehouse Managemant System) 
 
 Struktur tiga lapis: **frontend**, **backend**, dan **API** yang
 menghubungkan keduanya.
