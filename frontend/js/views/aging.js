@@ -2,17 +2,17 @@ import { api } from '../api.js';
 import { $, T, fmt, v, rpcErr, esc, csvCell } from '../ui.js';
 
 let D = 30, data = null, tmr = null;
-const batchTbl = () => `<h3 style="margin:18px 0 6px" id="agh">Batch dengan ED ≤ ${D} hari (${data.batches.length})</h3>${T(['SKU', 'Batch', 'Rak', 'Sisa hari', 'Ctn'].map((h, i) => i > 2 ? `<span style="display:block;text-align:right">${esc(h)}</span>` : h),
-  data.batches.map(b => `<tr><td>${esc(b.sku)}</td><td>${esc(b.batch)}</td><td>${esc(b.rack)}</td><td class="num">${esc(b.sisa)}</td><td class="num">${fmt(b.qty)}</td></tr>`))}`;
+const batchTbl = () => `<h3 style="margin:18px 0 6px" id="agh">Batch dengan ED ≤ ${D} hari (${data.batches.length})</h3>${T(['SKU', 'Whs', 'Batch', 'Rak', 'Sisa hari', 'Ctn'].map((h, i) => i > 3 ? `<span style="display:block;text-align:right">${esc(h)}</span>` : h),
+  data.batches.map(b => `<tr><td>${esc(b.sku)}</td><td>${esc(api.whsOf(b.sku, b.batch))}</td><td>${esc(b.batch)}</td><td>${esc(b.rack)}</td><td class="num">${esc(b.sisa)}</td><td class="num">${fmt(b.qty)}</td></tr>`))}`;
 
 export async function renderAging() {
-  data = await api.aging(D);
+  data = await api.aging(D); await api.whsEnsure(data.batches);
   $('#main').innerHTML = `<div class="card"><div class="flt"><label style="flex:0 1 320px">Tampilkan ED dalam<div class="sv"><input id="ag" type="range" min="0" max="365" step="5" value="${D}"><b id="agv">${D} hari</b></div></label><button class="btn o sp" data-a="agCsv">Ekspor CSV</button></div>
   <h3 style="margin:0 0 6px">Aging per SKU (ctn)</h3>${T(['SKU', 'Nama', '0-30', '31-90', '91-180', '>180', 'Expired'].map((h, i) => i > 1 ? `<span style="display:block;text-align:right">${esc(h)}</span>` : h),
     data.skus.map(s => `<tr><td>${esc(s.sku)}</td><td>${esc(s.name)}</td><td class="num">${fmt(s.b0)}</td><td class="num">${fmt(s.b1)}</td><td class="num">${fmt(s.b2)}</td><td class="num">${fmt(s.b3)}</td><td class="num">${fmt(s.exp)}</td></tr>`))}<div id="agb">${batchTbl()}</div></div>`;
   $('#ag').oninput = () => {
     D = +v('ag'); $('#agv').textContent = D + ' hari';
-    clearTimeout(tmr); tmr = setTimeout(async () => { try { data = await api.aging(D); $('#agb').innerHTML = batchTbl(); } catch (e) { rpcErr(e); } }, 200);
+    clearTimeout(tmr); tmr = setTimeout(async () => { try { data = await api.aging(D); await api.whsEnsure(data.batches); $('#agb').innerHTML = batchTbl(); } catch (e) { rpcErr(e); } }, 200);
   };
 }
 

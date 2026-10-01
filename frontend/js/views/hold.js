@@ -6,12 +6,13 @@ const es = (n) => n < 0 ? tag('exp', 'Kedaluwarsa') : n <= 90 ? tag('near', '≤
 
 export async function renderHold() {
   const rows = await api.holdList(); window._hold = rows;
+  await api.whsEnsure(rows);
   $('#main').innerHTML = `<div class="note">Stok berstatus hold tidak akan dialokasikan oleh FEFO dan tidak dihitung sebagai tersedia.</div>
-  <div class="card">${bar('')}${T(['SKU', 'Batch', 'Rak', 'Ctn', 'Status', 'Hold'], rows.map((r, i) => {
+  <div class="card">${bar('')}${T(['SKU', 'Whs', 'Batch', 'Rak', 'Ctn', 'Status', 'Hold'], rows.map((r, i) => {
     const free = r.qty - r.held;
     const cur = r.holds.map(h => `${tag('hold', RS[h.reason] + ' · ' + fmt(h.qty) + ' ctn')} <button class="btn o s" data-a="holdRel" data-v="${esc(h.id)}">Lepas</button>`).join(' ');
     const sel = free > 0 ? `<select data-h="${i}"><option value="">Hold karena…</option>${Object.entries(RS).map(([k, l]) => `<option value="${esc(k)}">${esc(l)}</option>`).join('')}</select>` : '';
-    return `<tr><td>${esc(r.sku)}</td><td>${esc(r.batch)}</td><td>${esc(r.rack)}</td><td class="num">${fmt(r.qty)}</td><td>${es(r.sisa)}</td><td>${sel} ${cur}</td></tr>`;
+    return `<tr><td>${esc(r.sku)}</td><td>${esc(api.whsOf(r.sku, r.batch))}</td><td>${esc(r.batch)}</td><td>${esc(r.rack)}</td><td class="num">${fmt(r.qty)}</td><td>${es(r.sisa)}</td><td>${sel} ${cur}</td></tr>`;
   }))}</div>`;
   $('#main').onchange = (e) => { const s = e.target.closest('select[data-h]'); if (s && s.value) { const k = s.value; s.value = ''; window.holdAsk(+s.dataset.h, k); } };
 }

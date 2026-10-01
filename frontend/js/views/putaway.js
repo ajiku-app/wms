@@ -12,16 +12,17 @@ const spc = (k) => k && k.capacity > 0 ? fmt(k.capacity - k.used) + ' ctn' : 'ka
 
 export async function renderPutaway() {
   const [rows, racks] = await Promise.all([api.stagingPending(), api.rackLoad()]);
+  await api.whsEnsure(rows);
   window._put = { rows, racks };
   $('#main').innerHTML = `<div class="note">Saran rak memprioritaskan rak yang sudah berisi SKU sama, lalu rak dengan ruang terbanyak.</div>
   <div class="card"><div class="ch"><h3>Menunggu putaway</h3><span class="lg2">${rows.length} baris</span></div>
-  <div class="wrap"><table><thead><tr><th>SKU</th><th>Batch</th><th style="text-align:right">Ctn</th><th>Di staging</th><th>Rak tujuan</th><th>Sisa ruang</th><th></th></tr></thead><tbody>${rows.length ? rows.map((r, i) => {
+  <div class="wrap"><table><thead><tr><th>SKU</th><th>Whs</th><th>Batch</th><th style="text-align:right">Ctn</th><th>Di staging</th><th>Rak tujuan</th><th>Sisa ruang</th><th></th></tr></thead><tbody>${rows.length ? rows.map((r, i) => {
     const s = suggest(r, racks), mv = r.qty - r.held;
     const opt = s.length ? s.map((k, j) => `<option value="${esc(k.code)}">${esc(k.code)}${j === 0 ? ' (disarankan)' : ''}</option>`).join('') : '<option value="">Tidak ada rak yang muat</option>';
-    return `<tr><td>${esc(r.sku)}</td><td>${esc(r.batch)}</td><td class="num">${fmt(mv)}${r.held ? ` <small class="l">(+${fmt(r.held)} hold)</small>` : ''}</td><td>${jam(r.hours)}</td>
+    return `<tr><td>${esc(r.sku)}</td><td>${esc(api.whsOf(r.sku, r.batch))}</td><td>${esc(r.batch)}</td><td class="num">${fmt(mv)}${r.held ? ` <small class="l">(+${fmt(r.held)} hold)</small>` : ''}</td><td>${jam(r.hours)}</td>
     <td>${mv > 0 ? `<select data-pi="${i}" id="pr${i}">${opt}</select>` : '<span class="l">Di-hold</span>'}</td><td class="pfx" id="pf${i}">${s[0] ? spc(s[0]) : '—'}</td>
     <td>${mv > 0 && s.length ? `<button class="btn go" data-a="putGo" data-v="${i}">Konfirmasi</button>` : ''}</td></tr>`;
-  }).join('') : '<tr><td colspan="7" class="empty">Tidak ada barang menunggu putaway</td></tr>'}</tbody></table></div></div>`;
+  }).join('') : '<tr><td colspan="8" class="empty">Tidak ada barang menunggu putaway</td></tr>'}</tbody></table></div></div>`;
   $('#main').querySelectorAll('select[data-pi]').forEach(s => { s.onchange = () => { $('#pf' + s.dataset.pi).textContent = spc(racks.find(k => k.code === s.value)); }; });
 }
 

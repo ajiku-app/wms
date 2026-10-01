@@ -10,9 +10,10 @@ export async function renderOpname(go, W, back) {
   if (W && W !== 'new') {
     const o = await api.getOpnameDoc(W);
     const lines = await api.listOpnameLines(W);
+    await api.whsEnsure(lines.map(x => ({ sku: o.sku, batch: x.batch })));
     const ed = o.status === 'open';
     $('#main').innerHTML = hd('Stok Opname — ' + o.no, back) +
-      `<div class="card"><div class="ch"><h3>${esc(o.sku)}</h3>${tag(o.status, o.status === 'open' ? 'Proses' : 'Selesai')}</div>${T(['Batch', 'Rak', 'Sistem', 'Fisik'], lines.map((x, i) => `<tr><td>${esc(x.batch)}</td><td>${esc(x.rack_code)}</td><td class="num">${fmt(x.qty_system)}</td><td>${ed ? `<input type="number" min="0" id="of${i}" value="${esc(x.qty_physical ?? x.qty_system)}" style="width:110px">` : fmt(x.qty_physical)}</td></tr>`))}${ed ? `<p style="text-align:right">${bt('opSet', 'Simpan Hitungan', o.no)} ${bt('opPost', 'Posting Selisih', o.no)}</p>` : ''}</div>`;
+      `<div class="card"><div class="ch"><h3>${esc(o.sku)}</h3>${tag(o.status, o.status === 'open' ? 'Proses' : 'Selesai')}</div>${T(['Whs', 'Batch', 'Rak', 'Sistem', 'Fisik'], lines.map((x, i) => `<tr><td>${esc(api.whsOf(o.sku, x.batch))}</td><td>${esc(x.batch)}</td><td>${esc(x.rack_code)}</td><td class="num">${fmt(x.qty_system)}</td><td>${ed ? `<input type="number" min="0" id="of${i}" value="${esc(x.qty_physical ?? x.qty_system)}" style="width:110px">` : fmt(x.qty_physical)}</td></tr>`))}${ed ? `<p style="text-align:right">${bt('opSet', 'Simpan Hitungan', o.no)} ${bt('opPost', 'Posting Selisih', o.no)}</p>` : ''}</div>`;
     window._opLines = lines;
     return;
   }

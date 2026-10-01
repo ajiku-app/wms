@@ -33,7 +33,6 @@ const labelsHTML = (L) => { let h = ''; for (let i = 0; i < L.length; i += 9) h 
 
 // ---- Dialog cetak label (pengganti prompt bawaan browser) ----
 let LB = null;
-const perKey = (sku) => 'wms_ctn_pallet_' + sku;
 const perOf = (i) => Math.max(0, parseInt(document.getElementById('lp' + i)?.value, 10) || 0);
 const qtyOf = (x) => x.qty_received || x.qty_pl;
 const plan = (q, per) => { if (!per || q <= per) return { n: 1, last: q, per: q }; const n = Math.ceil(q / per); return { n, last: q - per * (n - 1), per }; };
@@ -55,10 +54,11 @@ export function registerLabelActions(A) {
     const lines = (await api.listInboundLinesForLabel(no)).filter(x => qtyOf(x) > 0);
     if (!lines.length) return toast('Belum ada item untuk dicetak.');
     const names = await api.profileNames([...new Set(lines.map(x => x.pic).filter(Boolean))]);
+    lines.sort((a, b) => String(a.sku).localeCompare(String(b.sku)) || String(a.batch).localeCompare(String(b.batch)));
     LB = { no, lines, names };
-    const def = (sku) => { try { return localStorage.getItem(perKey(sku)) ?? localStorage.getItem('wms_ctn_pallet') ?? '24'; } catch (e) { return '24'; } };
-    const body = '<div class="lpm">' + lines.map((x, i) => `<div class="lpr"><div class="lpi"><b>${esc(x.sku)}</b><span>${esc(x.products?.name || '')}</span><small>Batch ${esc(x.batch)} · Total ${fmt(qtyOf(x))} ctn</small></div><label>Isi per pallet (ctn)<input id="lp${i}" type="number" min="0" value="${esc(def(x.sku))}"></label><div class="lpv" id="lv${i}"></div></div>`).join('')
-      + '<p class="lpt" id="lpt"></p><p class="l" style="margin:0">Isi 0 untuk 1 label per batch. Setiap label pallet memiliki QR unik.</p></div>';
+    const def = () => '0'; // tiap batch sudah = 1 pallet (dipecah di Packing List)
+    const body = '<div class="lpm">' + lines.map((x, i) => `<div class="lpr"><div class="lpi"><b>${esc(x.sku)}</b><span>${esc(x.products?.name || '')}</span><small>Batch ${esc(bno(x.sku, x.batch))} · Total ${fmt(qtyOf(x))} ctn</small></div><label>Isi per pallet (ctn)<input id="lp${i}" type="number" min="0" value="${esc(def())}"></label><div class="lpv" id="lv${i}"></div></div>`).join('')
+      + '<p class="lpt" id="lpt"></p><p class="l" style="margin:0">Isi 0 = 1 label per batch (tiap batch sudah 1 pallet). Isi angka hanya untuk batch lama yang belum dipecah per pallet.</p></div>';
     modal('Cetak Label — ' + no, body, 'Cetak Label', 'lblGo', no);
     $('#mod').oninput = lblPrev; lblPrev();
   };
@@ -67,11 +67,15 @@ export function registerLabelActions(A) {
     const { no, lines, names } = LB, L = [];
     lines.forEach((x, i) => {
       const per = perOf(i), q = qtyOf(x);
-      try { localStorage.setItem(perKey(x.sku), String(per)); } catch (e) {}
       const ppc = x.products?.pcs_per_ctn || 1;
       const pic = names[x.pic] || ME?.name || '';
       const base = { sku: x.sku, nama: x.products?.name, batch: x.batch, prod: x.production_date, exp: x.expiry, loc: x.rack_code, pic, no };
-      if (!per || q <= per) { L.push({ ...base, q, pcs: q * ppc, svg: qr(x.sku + '|' + x.batch) }); return; }
+      if (!per || q <= per) {
+        // satu batch = satu pallet: nomor pallet diambil dari urutan batch (SKU + ED yang sama) di dokumen ini
+        const grp = lines.filter(z => z.sku === x.sku && String(z.batch).split('.')[0] === String(x.batch).split('.')[0]);
+        const pal = grp.length > 1 ? String(grp.indexOf(x) + 1).padStart(3, '0') + '/' + String(grp.length).padStart(3, '0') : undefined;
+        L.push({ ...base, q, pcs: q * ppc, pal, svg: qr(x.sku + '|' + x.batch) }); return;
+      }
       const n = Math.ceil(q / per);
       for (let k = 1; k <= n; k++) {
         const qq = k < n ? per : q - per * (n - 1);

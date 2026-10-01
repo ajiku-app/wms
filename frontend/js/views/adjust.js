@@ -5,9 +5,10 @@ export async function renderAdjust() {
   const rows = await api.listStockForAdjust();
   window._ar = rows;
   const log = await api.listAdjustLog();
+  await api.whsEnsure([...rows, ...log]);
   $('#main').innerHTML = hd('Penyesuaian Stok') +
-    `<div class="card"><h3 style="margin-bottom:10px">Penyesuaian manual</h3><div class="row">${sel('aF', 'Stok (SKU · batch · rak)', rows.map((r, i) => [i, `${r.sku} · ${r.batch} · ${r.rack_code} (${fmt(r.qty)} ctn)`]))}${inp('aQ', 'Jumlah baru (carton)', '', 'number')}${inp('aR', 'Alasan*')}${bt('adjGo', 'Simpan')}</div></div>
-    <div class="card"><h3 style="margin-bottom:10px">Riwayat penyesuaian</h3>${T(['Waktu', 'Ref', 'SKU', 'Batch', 'Rak', 'Selisih'], log.map(l => `<tr><td>${new Date(l.moved_at).toLocaleString('id-ID')}</td><td>${esc(l.doc_no)}</td><td>${esc(l.sku)}</td><td>${esc(l.batch)}</td><td>${esc(l.to_rack)}</td><td class="num">${l.qty > 0 ? '+' : ''}${esc(l.qty)}</td></tr>`))}</div>`;
+    `<div class="card"><h3 style="margin-bottom:10px">Penyesuaian manual</h3><div class="row">${sel('aF', 'Stok (SKU · batch · rak)', rows.map((r, i) => [i, `${api.whsOf(r.sku, r.batch)} · ${r.sku} · ${r.batch} · ${r.rack_code} (${fmt(r.qty)} ctn)`]))}${inp('aQ', 'Jumlah baru (carton)', '', 'number')}${inp('aR', 'Alasan*')}${bt('adjGo', 'Simpan')}</div></div>
+    <div class="card"><h3 style="margin-bottom:10px">Riwayat penyesuaian</h3>${T(['Waktu', 'Ref', 'SKU', 'Whs', 'Batch', 'Rak', 'Selisih'], log.map(l => `<tr><td>${new Date(l.moved_at).toLocaleString('id-ID')}</td><td>${esc(l.doc_no)}</td><td>${esc(l.sku)}</td><td>${esc(api.whsOf(l.sku, l.batch))}</td><td>${esc(l.batch)}</td><td>${esc(l.to_rack)}</td><td class="num">${l.qty > 0 ? '+' : ''}${esc(l.qty)}</td></tr>`))}</div>`;
 }
 
 export function registerAdjustActions(A, go) {

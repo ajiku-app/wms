@@ -1,6 +1,6 @@
 // Pembungkus desktop: menyajikan folder frontend lewat server lokal (127.0.0.1)
 // agar ES module berjalan (file:// diblokir browser) dan CSP 'self' tetap valid.
-const { app, BrowserWindow, shell, Menu, dialog } = require('electron');
+const { app, BrowserWindow, shell, Menu, dialog, ipcMain, safeStorage, session } = require('electron');
 const { autoUpdater } = require('electron-updater');
 const http = require('http');
 const fs = require('fs');
@@ -16,6 +16,31 @@ const MIME = {
   '.jpg': 'image/jpeg', '.json': 'application/json', '.webmanifest': 'application/manifest+json',
   '.ico': 'image/x-icon', '.woff2': 'font/woff2'
 };
+
+// Penyimpanan sesi login di file (folder data pengguna), dienkripsi dengan Windows DPAPI.
+// Tidak bergantung pada localStorage Chromium, jadi login tetap ada setelah aplikasi ditutup.
+const storeFile = () => path.join(app.getPath('userData'), 'auth-store.bin');
+let storeCache = null;
+function loadStore() {
+  if (storeCache) return storeCache;
+  try {
+    const raw = fs.readFileSync(storeFile());
+    const txt = safeStorage.isEncryptionAvailable() ? safeStorage.decryptString(raw) : raw.toString('utf8');
+    storeCache = JSON.parse(txt);
+  } catch (e) { storeCache = {}; }
+  return storeCache;
+}
+function saveStore() {
+  const txt = JSON.stringify(storeCache || {});
+  const buf = safeStorage.isEncryptionAvailable() ? safeStorage.encryptString(txt) : Buffer.from(txt, 'utf8');
+  const tmp = storeFile() + '.tmp';
+  fs.writeFileSync(tmp, buf);
+  fs.renameSync(tmp, storeFile());
+}
+ipcMain.handle('app:version', () => app.getVersion());
+ipcMain.handle('store:get', (_e, k) => (typeof k === 'string' ? (loadStore()[k] ?? null) : null));
+ipcMain.handle('store:set', (_e, k, v) => { if (typeof k === 'string' && typeof v === 'string') { loadStore()[k] = v; saveStore(); } });
+ipcMain.handle('store:remove', (_e, k) => { if (typeof k === 'string') { delete loadStore()[k]; saveStore(); } });
 
 // Port TETAP agar origin (http://127.0.0.1:PORT) tidak berubah -> sesi login
 // tersimpan di localStorage tetap ada setelah aplikasi ditutup/dibuka lagi.
@@ -55,8 +80,8 @@ function setupAutoUpdate(win) {
       type: 'info', buttons: ['Restart sekarang', 'Nanti'], defaultId: 0, cancelId: 1,
       title: 'Pembaruan tersedia',
       message: `Versi ${info.version} sudah diunduh.`,
-      detail: 'Restart untuk memasang pembaruan. Jika memilih "Nanti", pembaruan dipasang otomatis saat aplikasi ditutup.'
-    }).then(r => { if (r.response === 0) autoUpdater.quitAndInstall(); });
+      detail: 'Aplikasi akan menutup sebentar, memasang pembaruan, lalu terbuka lagi otomatis. Jika memilih "Nanti", pembaruan dipasang otomatis saat aplikasi ditutup.'
+    }).then(r => { if (r.response === 0) autoUpdater.quitAndInstall(true, true); });
   });
   autoUpdater.on('error', e => console.warn('Auto-update:', e && e.message));
   const check = () => autoUpdater.checkForUpdates().catch(() => {});
@@ -71,7 +96,7 @@ async function createWindow() {
     backgroundColor: '#0a0b0e', title: 'WMS FG Warehouse',
     icon: path.join(__dirname, 'build', 'icon.png'),
     autoHideMenuBar: true,
-    webPreferences: { contextIsolation: true, nodeIntegration: false, sandbox: true }
+    webPreferences: { contextIsolation: true, nodeIntegration: false, sandbox: true, preload: path.join(__dirname, 'preload.js') }
   });
   Menu.setApplicationMenu(null);
   // Tautan eksternal dibuka di browser, bukan di jendela aplikasi
@@ -91,5 +116,6 @@ else {
     if (w) { if (w.isMinimized()) w.restore(); w.focus(); }
   });
   app.whenReady().then(createWindow);
+  app.on('before-quit', () => { try { session.defaultSession.flushStorageData(); } catch (e) {} });
   app.on('window-all-closed', () => app.quit());
 }

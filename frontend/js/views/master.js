@@ -22,7 +22,7 @@ export async function renderMRak() {
 }
 export async function renderMPemasok() {
   const data = await api.listSuppliers();
-  $('#main').innerHTML = hd('Master — Pemasok') + `<div class="card">${bar(bt('spM', '+ Tambah'))}${T(['Nama Pemasok', 'Status'], data.map(s => `<tr><td>${esc(s.name)}</td><td>${tag(s.active, s.active ? 'Aktif' : 'Nonaktif')}</td></tr>`))}</div>`;
+  $('#main').innerHTML = hd('Master — Pemasok') + `<div class="card">${bar(bt('spM', '+ Tambah'))}${T(['Whs', 'Nama Pemasok', 'Status'], data.map(s => `<tr><td>${esc(s.Whs || '—')}</td><td>${esc(s.name)}</td><td>${tag(s.active, s.active ? 'Aktif' : 'Nonaktif')}</td></tr>`))}</div>`;
 }
 export async function renderMCust() {
   const data = await api.listCustomers();

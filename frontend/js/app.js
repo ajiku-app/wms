@@ -3,7 +3,7 @@
 // semua modul "views/*.js". Ini titik masuk aplikasi (dipanggil
 // dari index.html).
 // ============================================================
-import { auth, api, subscribeChanges } from './api.js';
+import { auth, api, subscribeChanges, appVersion } from './api.js';
 import { $, modal, pgRefresh, esc } from './ui.js';
 import * as Auth from './auth.js';
 import { loadMe, renderLogin, renderPendingRole } from './auth.js';
@@ -200,6 +200,7 @@ function renderShell() {
   <div class="u"><label class="pr">Peran<select id="rp" ${canPreview ? '' : 'disabled'} title="${canPreview ? 'Pratinjau menu per peran (hak akses tetap dicek server)' : 'Peran akun Anda'}">${ROLES.map(r => `<option value="${esc(r[0])}" ${r[0] === me.role ? 'selected' : ''}>${esc(r[1])}</option>`).join('')}</select></label><button class="btn o" id="th">Tema</button></div></div><main id="main"></main></div></div>
   <div id="mod"></div>`;
   $('#lo').onclick = () => auth.signOut();
+  appVersion().then(v => { const b = $('.brand'); if (v && b) b.insertAdjacentHTML('beforeend', `<small>Versi ${esc(v)}</small>`); });
   $('#tg').onclick = () => drawer($('#side').classList.contains('hide'));
   $('#scrim').onclick = () => drawer(false);
   $('#th').onclick = () => theme(document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark');

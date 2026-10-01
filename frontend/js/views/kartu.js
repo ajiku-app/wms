@@ -21,10 +21,11 @@ export async function renderKartu() {
   const load = async () => {
     sku = window.__kSku = v('kp');
     const mv = await api.stockCard(sku); let s = 0;
+    await api.whsEnsure(mv.map(m => ({ sku, batch: m.batch })));
     const rows = mv.map(m => { s += delta(m); return { ...m, d: delta(m), s }; });
     $('#kb').innerHTML = `<p class="l" style="margin:10px 0 0">Saldo sekarang: <b style="color:var(--ink)">${fmt(s)} ctn</b></p>${chart(rows.map(r => r.s))}
-    ${T(['Tanggal', 'Tipe', 'Dokumen', 'Mutasi', 'Saldo'].map((h, i) => i > 2 ? `<span style="display:block;text-align:right">${esc(h)}</span>` : h),
-      rows.map(r => `<tr><td>${iso(new Date(r.moved_at))}</td><td>${tag(TP[r.type] || 'used', r.type)}</td><td>${esc(r.doc_no || '—')}</td><td class="num">${r.d === 0 ? '–' : (r.d > 0 ? '+' : '') + fmt(r.d)}</td><td class="num">${fmt(r.s)}</td></tr>`))}`;
+    ${T(['Tanggal', 'Tipe', 'Dokumen', 'Whs', 'Mutasi', 'Saldo'].map((h, i) => i > 3 ? `<span style="display:block;text-align:right">${esc(h)}</span>` : h),
+      rows.map(r => `<tr><td>${iso(new Date(r.moved_at))}</td><td>${tag(TP[r.type] || 'used', r.type)}</td><td>${esc(r.doc_no || '—')}</td><td>${esc(api.whsOf(sku, r.batch))}</td><td class="num">${r.d === 0 ? '–' : (r.d > 0 ? '+' : '') + fmt(r.d)}</td><td class="num">${fmt(r.s)}</td></tr>`))}`;
   };
   $('#kp').onchange = load; await load();
 }

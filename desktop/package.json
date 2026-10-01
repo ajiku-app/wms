@@ -1,6 +1,6 @@
 {
   "name": "wms-fg-desktop",
-  "version": "2.0.3",
+  "version": "2.0.7",
   "description": "WMS FG Warehouse — Serena Indopapangan (aplikasi desktop Windows)",
   "author": "Serena Indopapangan",
   "main": "main.js",
@@ -22,6 +22,7 @@
     },
     "files": [
       "main.js",
+      "preload.js",
       "package.json"
     ],
     "extraResources": [

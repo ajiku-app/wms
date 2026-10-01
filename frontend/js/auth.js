@@ -1,7 +1,7 @@
 // ============================================================
 // AUTH — layar login & daftar, dan status "menunggu role".
 // ============================================================
-import { auth, api } from './api.js';
+import { auth, api, appVersion } from './api.js';
 import { $, v, inp, toast, esc } from './ui.js';
 
 export let ME = null; // {id,email,name,role,active}
@@ -16,6 +16,7 @@ export function renderLogin(root, onReady, mode = 'in') {
   <div id="lf">${inp('le', 'Email')}${inp('lp', 'Kata sandi', '', 'password')}<button class="btn" id="lgo" style="width:100%">${mode === 'in' ? 'Masuk' : 'Buat akun'}</button></div>
   <p class="l" style="text-align:center;margin-top:12px">${mode === 'in' ? `Belum punya akun? <a href="#" id="sw">Daftar</a>` : `Sudah punya akun? <a href="#" id="sw">Masuk</a>`}</p>
   ${mode === 'up' ? '<p class="note" style="margin-top:10px">Akun baru belum bisa mengakses data sampai role-nya diatur oleh admin.</p>' : ''}</div></div>`;
+  appVersion().then(ver => { const c = root.querySelector('.lgc'); if (ver && c) c.insertAdjacentHTML('beforeend', `<p class="l" style="margin:14px 0 0;font-size:11px;opacity:.7">Versi ${esc(ver)}</p>`); });
   $('#sw').onclick = (e) => { e.preventDefault(); renderLogin(root, onReady, mode === 'in' ? 'up' : 'in'); };
   $('#lgo').onclick = async () => {
     const email = v('le').trim(), pw = v('lp');

@@ -10,7 +10,22 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { SUPABASE_URL, SUPABASE_ANON } from './config.js';
 
-export const sb = createClient(SUPABASE_URL, SUPABASE_ANON);
+// Di aplikasi desktop (Electron) sesi login disimpan lewat file, bukan localStorage,
+// agar tidak hilang saat aplikasi ditutup. Di browser/PWA memakai localStorage bawaan.
+const desk = typeof window !== 'undefined' ? window.desktopStore : null;
+const lsGet = k => { try { return localStorage.getItem(k); } catch (e) { return null; } };
+const lsDel = k => { try { localStorage.removeItem(k); } catch (e) {} };
+const deskStorage = desk ? {
+  getItem: async k => (await desk.get(k)) ?? lsGet(k),
+  setItem: (k, v) => desk.set(k, v),
+  removeItem: async k => { lsDel(k); await desk.remove(k); }
+} : null;
+
+// Versi aplikasi desktop (null jika dibuka di browser/PWA)
+export const appVersion = async () => { try { return desk && desk.version ? await desk.version() : null; } catch (e) { return null; } };
+
+export const sb = createClient(SUPABASE_URL, SUPABASE_ANON,
+  deskStorage ? { auth: { storage: deskStorage, persistSession: true, autoRefreshToken: true } } : undefined);
 
 function unwrap({ data, error, count }) {
   if (error) throw error;
@@ -45,6 +60,9 @@ export const auth = {
   signOut: () => sb.auth.signOut(),
 };
 
+// Cache kode warehouse per (sku|batch): 'FG-01', ... ('' = tidak diketahui)
+const _bw = new Map();
+
 export const api = {
   // ---- util nomor dokumen ----
   docExists: (table, no) => sb.from(table).select('no').eq('no', no).maybeSingle().then(r => { if (r.error) throw r.error; return !!r.data; }),
@@ -75,8 +93,8 @@ export const api = {
   setRackActive: (code, active) => sb.rpc('wms_rack_set_active', { p_code: code, p_active: active }).then(unwrap),
 
   // ---- master: pemasok & customer ----
-  listSuppliers: () => sb.from('suppliers').select('name,active').order('name').then(unwrap),
-  listActiveSuppliers: () => sb.from('suppliers').select('name').eq('active', true).then(unwrap),
+  listSuppliers: () => sb.from('suppliers').select('name,active,Whs').order('name').then(unwrap),
+  listActiveSuppliers: () => sb.from('suppliers').select('name,Whs').eq('active', true).then(unwrap),
   addSupplier: (name) => sb.rpc('wms_supplier_add', { p_name: name }).then(unwrap),
   listCustomers: () => sb.from('customers').select('name,phone,address,active').order('name').then(unwrap),
   listActiveCustomers: () => sb.from('customers').select('name,phone,address').eq('active', true).then(unwrap),
@@ -105,12 +123,12 @@ export const api = {
   completeInbound: (no) => sb.rpc('wms_inbound_complete', { p_doc: no }).then(unwrap),
 
   // ---- outbound ----
-  listOutboundDocs: () => sb.from('outbound_docs').select('no,doc_date,customer_name,status').order('created_at', { ascending: false }).then(unwrap),
+  listOutboundDocs: () => sb.from('outbound_docs').select('no,doc_date,customer_name,status,whs').order('created_at', { ascending: false }).then(unwrap),
   getOutboundDoc: (no) => sb.from('outbound_docs').select('*').eq('no', no).single().then(unwrap),
   listOutboundPicks: (no) => sb.from('outbound_picks').select('*,products(name)').eq('doc_no', no).order('seq').then(unwrap),
   countOutboundDocs: () => sb.from('outbound_docs').select('no', { count: 'exact', head: true }).then(unwrap),
-  createOutboundDoc: (no, customer, phone, address) =>
-    sb.rpc('wms_outbound_create', { p_no: no, p_customer: customer, p_phone: phone, p_address: address }).then(unwrap),
+  createOutboundDoc: (no, customer, phone, address, whs) =>
+    sb.rpc('wms_outbound_create', { p_no: no, p_customer: customer, p_phone: phone, p_address: address, p_whs: whs || null }).then(unwrap),
   fefoAllocate: (doc, sku, qty) => sb.rpc('fefo_allocate', { p_doc: doc, p_sku: sku, p_qty: qty }).then(unwrap),
   pick: (doc, sku, batch, rack, qty) => sb.rpc('wms_pick', { p_doc: doc, p_sku: sku, p_batch: batch, p_rack: rack, p_qty: qty }).then(unwrap),
   completeOutbound: (no) => sb.rpc('wms_outbound_complete', { p_doc: no }).then(unwrap),
@@ -155,11 +173,36 @@ export const api = {
   stockPage: (o) => sb.rpc('wms_stock_page', { p_q: o.q, p_status: o.st, p_limit: o.lim, p_offset: o.off, p_sort: o.sort, p_dir: o.dir }).then(unwrap),
   stagingPending: () => sb.rpc('wms_staging_pending').then(unwrap),
   putaway: (sku, batch, rack, qty) => sb.rpc('wms_putaway', { p_sku: sku, p_batch: batch, p_rack: rack, p_qty: qty }).then(unwrap),
-  stockCard: (sku) => sb.from('stock_movements').select('moved_at,type,doc_no,qty').eq('sku', sku).order('moved_at').order('id').limit(1000).then(unwrap),
+  stockCard: (sku) => sb.from('stock_movements').select('moved_at,type,doc_no,qty,batch').eq('sku', sku).order('moved_at').order('id').limit(1000).then(unwrap),
   holdList: () => sb.rpc('wms_hold_list').then(unwrap),
   holdSet: (sku, batch, rack, qty, reason, note) => sb.rpc('wms_hold_set', { p_sku: sku, p_batch: batch, p_rack: rack, p_qty: qty, p_reason: reason, p_note: note || null }).then(unwrap),
   holdRelease: (id) => sb.rpc('wms_hold_release', { p_id: id }).then(unwrap),
   aging: (days) => sb.rpc('wms_aging', { p_days: days }).then(unwrap),
+
+  // ---- warehouse: kode FG-01.. disimpan di kolom suppliers."Whs" ----
+  listWarehouses: async () => {
+    const d = await sb.from('suppliers').select('name,Whs').eq('active', true).then(unwrap);
+    const m = new Map();
+    (d || []).forEach(s => { if (s.Whs && !m.has(s.Whs)) m.set(s.Whs, s.name); });
+    return [...m].map(([code, name]) => ({ code, name })).sort((a, b) => a.code.localeCompare(b.code, undefined, { numeric: true }));
+  },
+  // peta nama pemasok -> kode warehouse
+  supplierWhs: async () => Object.fromEntries(((await sb.from('suppliers').select('name,Whs').then(unwrap)) || []).map(s => [s.name, s.Whs || ''])),
+  // isi cache warehouse untuk baris yang punya sku + batch (asal: Packing List -> pemasok -> Whs)
+  whsEnsure: async (rows) => {
+    try {
+      const list = (rows || []).filter(r => r && r.sku && r.batch);
+      const need = [...new Set(list.filter(r => !_bw.has(r.sku + '|' + r.batch)).map(r => r.batch))];
+      if (!need.length) return;
+      const sup = await api.supplierWhs();
+      for (let i = 0; i < need.length; i += 100) {
+        const d = await sb.from('packing_list_lines').select('sku,batch,packing_lists(supplier)').in('batch', need.slice(i, i + 100)).then(unwrap);
+        (d || []).forEach(r => _bw.set(r.sku + '|' + r.batch, sup[r.packing_lists?.supplier] || ''));
+      }
+      list.forEach(r => { if (!_bw.has(r.sku + '|' + r.batch)) _bw.set(r.sku + '|' + r.batch, ''); });
+    } catch (e) { /* gagal -> kolom Whs tampil '—' */ }
+  },
+  whsOf: (sku, batch) => _bw.get(sku + '|' + batch) || '—',
 
   // ---- label inbound ----
   listInboundLinesForLabel: (no) => sb.from('inbound_lines').select('*,products(name,pcs_per_ctn)').eq('doc_no', no).then(unwrap),

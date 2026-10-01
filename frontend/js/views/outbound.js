@@ -2,6 +2,8 @@ import { api } from '../api.js';
 import { bno, askConfirm, askText, $, hd, T, bar, bt, ic, tag, sel, inp, v, fmt, toast, rpcErr, findFreeNo, modal, esc } from '../ui.js';
 
 let dob = []; // baris SKU+qty sementara sebelum outbound dibuat
+let form = {}; // isian form (warehouse, customer, dst) agar tidak hilang saat halaman digambar ulang
+const keep = () => { form = { ow: v('ow'), ot: v('ot'), oc: v('oc'), otl: v('otl'), oa: v('oa') }; };
 
 async function skuSelect(id) {
   const rows = await api.listActiveProducts();
@@ -10,39 +12,43 @@ async function skuSelect(id) {
 
 export async function renderOutbound(go, W, back) {
   if (W === 'new') {
-    const cust = await api.listActiveCustomers();
+    const [cust, whl] = await Promise.all([api.listActiveCustomers(), api.listWarehouses()]);
     $('#main').innerHTML = hd('Tambah Outbound Manual', back) +
-      `<div class="card"><h3 style="margin-bottom:10px">Informasi Warehouse</h3><div class="row">${sel('ow', 'Warehouse*', [['Gudang FG', 'Gudang FG']])}${inp('ot', 'Tanggal kirim', new Date().toISOString().slice(0,10), 'date')}</div></div>
+      `<div class="card"><h3 style="margin-bottom:10px">Informasi Warehouse</h3><div class="row">${sel('ow', 'Warehouse*', whl.map(x => [x.code, x.code]))}${inp('ot', 'Tanggal kirim', new Date().toISOString().slice(0,10), 'date')}</div></div>
       <div class="card"><h3 style="margin-bottom:10px">Informasi Penerima</h3><div class="row">${sel('oc', 'Customer*', cust.map(c => [c.name, c.name]))}<button class="btn o s" data-a="custNew">+ Customer baru</button>${inp('otl', 'No. Telepon')}</div><label>Alamat<textarea id="oa" rows="2"></textarea></label></div>
       <div class="card"><div class="ch"><h3>List Produk</h3><button class="btn s" data-a="obM">+ Tambah</button></div><div id="obLines">${dob.length ? T(['SKU', 'Jumlah (ctn)', ''], dob.map((x, i) => `<tr><td>${esc(x.sku)}</td><td class="num">${fmt(x.qty)}</td><td>${ic('obLn', i, 'Hapus', 'r')}</td></tr>`)) : '<div class="empty">Belum ada produk. Klik + Tambah.</div>'}</div><p style="text-align:right">${bt('obSave', 'Buat Outbound')}</p></div>`;
+    Object.entries(form).forEach(([id, val]) => { const e = document.getElementById(id); if (e && val) e.value = val; });
     return;
   }
   if (W) {
     const o = await api.getOutboundDoc(W);
     const picks = await api.listOutboundPicks(W);
+    await api.whsEnsure(picks);
     $('#main').innerHTML = hd('Outbound — ' + o.no, back) +
-      `<div class="card"><div class="ch"><h3>Informasi Pemesanan</h3>${tag(o.status, o.status === 'open' ? 'Proses' : 'Selesai')}</div><div class="kv"><span>Kode</span><b>${esc(o.no)}</b><span>Tanggal</span><b>${esc(o.doc_date)}</b><span>Warehouse</span><b>Gudang FG</b></div><h3 style="margin:14px 0 6px">Informasi Pelanggan</h3><div class="kv"><span>Nama</span><b>${esc(o.customer_name)}</b><span>No. Telepon</span><b>${esc(o.customer_phone || '—')}</b><span>Alamat</span><b>${esc(o.customer_address || '—')}</b></div></div>
-      <div class="card"><h3 style="margin-bottom:10px">Picking List (FEFO)</h3>${picks.length ? T(['Urutan', 'SKU', 'Rak', 'Batch', 'ED', 'Diambil / Target'], picks.map(p => `<tr><td>${esc(p.seq)}</td><td>${esc(p.sku)}</td><td><b>${esc(p.rack_code)}</b></td><td>${esc(p.batch)}</td><td>${esc(p.expiry)}</td><td class="num">${fmt(p.picked)} / ${fmt(p.qty)}</td></tr>`)) : '<div class="empty">Belum dialokasikan.</div>'}
+      `<div class="card"><div class="ch"><h3>Informasi Pemesanan</h3>${tag(o.status, o.status === 'open' ? 'Proses' : 'Selesai')}</div><div class="kv"><span>Kode</span><b>${esc(o.no)}</b><span>Tanggal</span><b>${esc(o.doc_date)}</b><span>Warehouse</span><b>${esc(o.whs || '—')}</b></div><h3 style="margin:14px 0 6px">Informasi Pelanggan</h3><div class="kv"><span>Nama</span><b>${esc(o.customer_name)}</b><span>No. Telepon</span><b>${esc(o.customer_phone || '—')}</b><span>Alamat</span><b>${esc(o.customer_address || '—')}</b></div></div>
+      <div class="card"><h3 style="margin-bottom:10px">Picking List (FEFO)</h3>${picks.length ? T(['Urutan', 'SKU', 'Whs', 'Rak', 'Batch', 'ED', 'Diambil / Target'], picks.map(p => `<tr><td>${esc(p.seq)}</td><td>${esc(p.sku)}</td><td>${esc(api.whsOf(p.sku, p.batch))}</td><td><b>${esc(p.rack_code)}</b></td><td>${esc(p.batch)}</td><td>${esc(p.expiry)}</td><td class="num">${fmt(p.picked)} / ${fmt(p.qty)}</td></tr>`)) : '<div class="empty">Belum dialokasikan.</div>'}
       <p style="text-align:right">${o.status === 'open' && !picks.length ? `<button class="btn" data-a="obAlloc" data-v="${esc(o.no)}">Buat Picking List (FEFO)</button>` : ''}${o.status === 'open' && picks.length ? `<button class="btn o" data-a="obPickAll" data-v="${esc(o.no)}">Tandai Semua Terpick</button> <button class="btn" data-a="obDone" data-v="${esc(o.no)}">Selesai Kirim</button>` : ''}</p></div>`;
     return;
   }
   const rows = await api.listOutboundDocs();
-  $('#main').innerHTML = hd('Outbound — Manual') + `<div class="card">${bar(bt('newW', '+ Outbound'))}${T(['Tanggal', 'Kode Outbound', 'Customer', 'Status', 'Aksi'], rows.map(x => `<tr><td>${esc(x.doc_date)}</td><td>${esc(x.no)}</td><td>${esc(x.customer_name)}</td><td>${tag(x.status, x.status === 'open' ? 'Proses' : 'Selesai')}</td><td>${ic('openW', x.no, 'Lihat')}</td></tr>`))}</div>`;
+  $('#main').innerHTML = hd('Outbound — Manual') + `<div class="card">${bar(bt('newW', '+ Outbound'))}${T(['Tanggal', 'Kode Outbound', 'Whs', 'Customer', 'Status', 'Aksi'], rows.map(x => `<tr><td>${esc(x.doc_date)}</td><td>${esc(x.no)}</td><td>${esc(x.whs || '—')}</td><td>${esc(x.customer_name)}</td><td>${tag(x.status, x.status === 'open' ? 'Proses' : 'Selesai')}</td><td>${ic('openW', x.no, 'Lihat')}</td></tr>`))}</div>`;
 }
 
 export function registerOutboundActions(A, go) {
   A.custNew = async () => {
     const n = await askText('Customer Baru', 'Nama customer*', 'Simpan', 'mis. PT Contoh Sejahtera'); if (!n) return;
-    try { await api.addCustomer(n); toast('Customer ditambahkan.'); go('out', 'new'); } catch (e) { rpcErr(e); }
+    try { await api.addCustomer(n); toast('Customer ditambahkan.'); keep(); form.oc = n; go('out', 'new'); } catch (e) { rpcErr(e); }
   };
   A.obM = async () => modal('Tambah Produk', await skuSelect('obK') + inp('obQ', 'Jumlah (carton)*', '100', 'number'), 'Tambah', 'obAdd');
-  A.obAdd = () => { const q = +v('obQ'); if (!(q > 0)) return toast('Jumlah harus lebih dari 0.'); dob.push({ sku: v('obK'), qty: q }); A.mx(); go('out', 'new'); };
-  A.obLn = (i) => { dob.splice(+i, 1); go('out', 'new'); };
+  A.obAdd = () => { const q = +v('obQ'); if (!(q > 0)) return toast('Jumlah harus lebih dari 0.'); dob.push({ sku: v('obK'), qty: q }); keep(); A.mx(); go('out', 'new'); };
+  A.obLn = (i) => { dob.splice(+i, 1); keep(); go('out', 'new'); };
   A.obSave = async () => {
     if (!dob.length) return toast('Tambahkan minimal satu produk.');
+    const whs = v('ow'); if (!whs) return toast('Pilih warehouse.');
     try {
       const no = await findFreeNo('DO', 'outbound_docs', api);
-      await api.createOutboundDoc(no, v('oc'), v('otl'), v('oa'));
+      await api.createOutboundDoc(no, v('oc'), v('otl'), v('oa'), whs);
+      form = {};
       const items = dob.slice(); dob = [];
       toast('Outbound dibuat. Membuat picking list…');
       window._pendingItems = items;
