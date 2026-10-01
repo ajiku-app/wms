@@ -105,6 +105,10 @@ export const api = {
   listOpenPackingLists: () => sb.from('packing_lists').select('no,supplier').eq('status', 'open').then(unwrap),
   getPackingList: (no) => sb.from('packing_lists').select('*').eq('no', no).single().then(unwrap),
   listPackingListLines: (no) => sb.from('packing_list_lines').select('*,products(name)').eq('pl_no', no).then(unwrap),
+  // No GR per Packing List (gr_no ada di baris/line) -> { [pl_no]: ['GR1','GR2'] }
+  packingListGr: async () => { const d = await sb.from('packing_list_lines').select('pl_no,gr_no').not('gr_no', 'is', null).then(unwrap); const m = {}; (d || []).forEach(r => { const a = (m[r.pl_no] = m[r.pl_no] || []); if (!a.includes(r.gr_no)) a.push(r.gr_no); }); return m; },
+  updatePackingList: (no, supplier, docDate, gr) => sb.rpc('wms_pl_update', { p_no: no, p_supplier: supplier, p_doc_date: docDate, p_gr: gr || null }).then(unwrap),
+  deletePackingList: (no) => sb.rpc('wms_pl_delete', { p_no: no }).then(unwrap),
   countPackingLists: () => sb.from('packing_lists').select('no', { count: 'exact', head: true }).then(unwrap),
   createPackingList: (no, supplier, docDate) => sb.rpc('wms_pl_create', { p_no: no, p_supplier: supplier, p_doc_date: docDate }).then(unwrap),
   addPackingListLine: (pl, sku, batch, productionDate, expiry, qty, gr) =>
