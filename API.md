@@ -30,7 +30,7 @@ memanggil `wms_set_role`.
 | `products`, `racks`, `suppliers`, `customers`, `stock` | siapa pun yang sudah punya role | Master, Stok, Dashboard |
 | `packing_lists`, `packing_list_lines` | inbound, admin, supervisor | Packing List |
 | `inbound_docs`, `inbound_lines` | inbound, admin, supervisor | Inbound |
-| `outbound_docs`, `outbound_picks` | picker, admin, supervisor | Outbound |
+| `outbound_docs`, `outbound_picks`, `outbound_items` | picker, admin, supervisor | Outbound |
 | `opname_docs`, `opname_lines` | admin, supervisor | Stok Opname |
 | `stock_movements` | admin, supervisor | Report, Mutasi, Penyesuaian |
 | `profiles` | siapa pun yang sudah punya role (lihat semua nama untuk PIC) | Users Management |
@@ -54,6 +54,7 @@ memanggil `wms_set_role`.
 | `wms_outbound_create` | `p_no, p_customer, p_phone, p_address` | picker, admin, supervisor | Outbound |
 | `fefo_allocate` | `p_doc, p_sku, p_qty` → return sisa yang tak terpenuhi | admin, supervisor* | Outbound — alokasi FEFO |
 | `wms_pick` | `p_doc, p_sku, p_batch, p_rack, p_qty` | picker, admin, supervisor | Outbound — catat pick, kurangi stok |
+| `wms_outbound_set_items` | `p_doc, p_items` (`[{sku, qty}]`) | picker, admin, supervisor | Outbound |
 | `wms_outbound_complete` | `p_doc` | picker, admin, supervisor | Outbound |
 | `wms_move` | `p_sku, p_batch, p_from, p_to, p_qty` | inbound, admin, supervisor | Mutasi |
 | `wms_opname_create` | `p_no, p_sku, p_counter` | admin, supervisor | Stok Opname |

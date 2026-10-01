@@ -131,6 +131,8 @@ export const api = {
   getOutboundDoc: (no) => sb.from('outbound_docs').select('*').eq('no', no).single().then(unwrap),
   listOutboundPicks: (no) => sb.from('outbound_picks').select('*,products(name)').eq('doc_no', no).order('seq').then(unwrap),
   countOutboundDocs: () => sb.from('outbound_docs').select('no', { count: 'exact', head: true }).then(unwrap),
+  listOutboundItems: (no) => sb.from('outbound_items').select('sku,qty').eq('doc_no', no).then(unwrap),
+  setOutboundItems: (no, items) => sb.rpc('wms_outbound_set_items', { p_doc: no, p_items: items }).then(unwrap),
   createOutboundDoc: (no, customer, phone, address, whs) =>
     sb.rpc('wms_outbound_create', { p_no: no, p_customer: customer, p_phone: phone, p_address: address, p_whs: whs || null }).then(unwrap),
   fefoAllocate: (doc, sku, qty) => sb.rpc('fefo_allocate', { p_doc: doc, p_sku: sku, p_qty: qty }).then(unwrap),

@@ -8,7 +8,7 @@ declare t text;
 begin
   foreach t in array array[
     'stock','stock_movements','packing_lists','packing_list_lines','inbound_docs','inbound_lines',
-    'outbound_docs','outbound_picks','opname_docs','opname_lines','racks','products','suppliers','customers','profiles'
+    'outbound_docs','outbound_picks','outbound_items','opname_docs','opname_lines','racks','products','suppliers','customers','profiles'
   ] loop
     if not exists (select 1 from pg_publication_tables where pubname='supabase_realtime' and schemaname='public' and tablename=t) then
       execute format('alter publication supabase_realtime add table public.%I', t);

@@ -116,6 +116,13 @@ create table public.outbound_docs(
   completed_at timestamptz,
   completed_by uuid references public.profiles(id)
 );
+-- Item pesanan outbound (SKU + jumlah yang diminta) — v2.0.12
+create table public.outbound_items(
+  doc_no varchar not null references public.outbound_docs(no),
+  sku varchar not null references public.products(sku),
+  qty integer not null check (qty > 0),
+  primary key (doc_no, sku)
+);
 -- Hasil alokasi FEFO per baris (dibuat oleh fungsi fefo_allocate)
 create table public.outbound_picks(
   id bigint generated always as identity primary key,

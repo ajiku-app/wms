@@ -19,6 +19,7 @@ alter table public.inbound_docs enable row level security;
 alter table public.inbound_lines enable row level security;
 alter table public.outbound_docs enable row level security;
 alter table public.outbound_picks enable row level security;
+alter table public.outbound_items enable row level security;
 alter table public.opname_docs enable row level security;
 alter table public.opname_lines enable row level security;
 alter table public.stock_movements enable row level security;
@@ -41,6 +42,7 @@ create policy p_in_lines on public.inbound_lines       for select using (wms_rol
 
 create policy p_out_docs on public.outbound_docs  for select using (wms_role() = any(array['picker','admin','supervisor']));
 create policy p_out_pick on public.outbound_picks for select using (wms_role() = any(array['picker','admin','supervisor']));
+create policy p_out_items on public.outbound_items for select using (wms_role() = any(array['picker','admin','supervisor']));
 
 create policy p_opname_docs  on public.opname_docs  for select using (wms_role() = any(array['admin','supervisor']));
 create policy p_opname_lines on public.opname_lines for select using (wms_role() = any(array['admin','supervisor']));
