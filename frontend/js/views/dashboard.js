@@ -1,5 +1,5 @@
 import { api } from '../api.js';
-import { $, T, tag, fmt, modal, days, esc } from '../ui.js';
+import { bno, $, T, tag, fmt, modal, days, esc } from '../ui.js';
 
 const HARI = ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'];
 const WARN = 60, FULL = 90; // ambang okupansi rak (%): kuning >= 60, merah >= 90
@@ -50,6 +50,6 @@ export function registerDashboardActions(A) {
     const rows = await api.stockByRack(code);
     await api.whsEnsure(rows);
     const es = (x) => { const n = days(x); return n < 0 ? tag('exp', 'Kedaluwarsa') : n <= 90 ? tag('near', '≤ 90 hari') : tag('Aman', 'Aman'); };
-    modal('Isi rak ' + code, T(['SKU', 'Whs', 'Nama', 'Batch', 'ED', 'Ctn', 'Status'], rows.map(r => `<tr><td>${esc(r.sku)}</td><td>${esc(api.whsOf(r.sku, r.batch))}</td><td>${esc(r.products?.name || '')}</td><td>${esc(r.batch)}</td><td>${esc(r.expiry)}</td><td class="num">${fmt(r.qty)}</td><td>${es(r.expiry)}</td></tr>`)), null, '', '', `<button class="btn o" data-a="blokOpen" data-v="${esc(code.charAt(0).toUpperCase())}">← Kembali</button>`, 'wide');
+    modal('Isi rak ' + code, T(['SKU', 'Whs', 'Nama', 'Batch', 'ED', 'Ctn', 'Status'], rows.map(r => `<tr><td>${esc(r.sku)}</td><td>${esc(api.whsOf(r.sku, r.batch))}</td><td>${esc(r.products?.name || '')}</td><td>${esc(bno(r.sku, r.batch))}</td><td>${esc(r.expiry)}</td><td class="num">${fmt(r.qty)}</td><td>${es(r.expiry)}</td></tr>`)), null, '', '', `<button class="btn o" data-a="blokOpen" data-v="${esc(code.charAt(0).toUpperCase())}">← Kembali</button>`, 'wide');
   };
 }

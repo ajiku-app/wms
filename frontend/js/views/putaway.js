@@ -1,5 +1,5 @@
 import { api } from '../api.js';
-import { $, hd, fmt, v, toast, rpcErr, esc } from '../ui.js';
+import { bno, $, hd, fmt, v, toast, rpcErr, esc } from '../ui.js';
 
 const jam = (h) => h < 1 ? '< 1 jam' : h < 48 ? Math.round(h) + ' jam' : Math.floor(h / 24) + ' hari';
 // Saran: rak yang sudah berisi SKU sama lebih dulu, lalu ruang terbanyak (kapasitas belum diisi = paling akhir). Maks. 5 rak.
@@ -19,7 +19,7 @@ export async function renderPutaway() {
   <div class="wrap"><table><thead><tr><th>SKU</th><th>Whs</th><th>Batch</th><th style="text-align:right">Ctn</th><th>Di staging</th><th>Rak tujuan</th><th>Sisa ruang</th><th></th></tr></thead><tbody>${rows.length ? rows.map((r, i) => {
     const s = suggest(r, racks), mv = r.qty - r.held;
     const opt = s.length ? s.map((k, j) => `<option value="${esc(k.code)}">${esc(k.code)}${j === 0 ? ' (disarankan)' : ''}</option>`).join('') : '<option value="">Tidak ada rak yang muat</option>';
-    return `<tr><td>${esc(r.sku)}</td><td>${esc(api.whsOf(r.sku, r.batch))}</td><td>${esc(r.batch)}</td><td class="num">${fmt(mv)}${r.held ? ` <small class="l">(+${fmt(r.held)} hold)</small>` : ''}</td><td>${jam(r.hours)}</td>
+    return `<tr><td>${esc(r.sku)}</td><td>${esc(api.whsOf(r.sku, r.batch))}</td><td>${esc(bno(r.sku, r.batch))}</td><td class="num">${fmt(mv)}${r.held ? ` <small class="l">(+${fmt(r.held)} hold)</small>` : ''}</td><td>${jam(r.hours)}</td>
     <td>${mv > 0 ? `<select data-pi="${i}" id="pr${i}">${opt}</select>` : '<span class="l">Di-hold</span>'}</td><td class="pfx" id="pf${i}">${s[0] ? spc(s[0]) : '—'}</td>
     <td>${mv > 0 && s.length ? `<button class="btn go" data-a="putGo" data-v="${i}">Konfirmasi</button>` : ''}</td></tr>`;
   }).join('') : '<tr><td colspan="8" class="empty">Tidak ada barang menunggu putaway</td></tr>'}</tbody></table></div></div>`;

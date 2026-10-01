@@ -8,8 +8,8 @@ export async function renderMutasi() {
   const mv = await api.listMoveHistory();
   await api.whsEnsure([...stock, ...mv]);
   $('#main').innerHTML = hd('Mutasi — Pindah Rak') +
-    `<div class="card"><h3 style="margin-bottom:10px">Pindah stok antar rak</h3><div class="row">${sel('mF', 'Dari (rak · SKU · batch)', stock.map((r, i) => [i, `${api.whsOf(r.sku, r.batch)} · ${r.rack_code} · ${r.sku} · ${r.batch} (${fmt(r.qty)} ctn)`]))}${inp('mQ', 'Jumlah (carton)', '10', 'number')}${sel('mT', 'Ke rak', racks.map(r => [r.code, r.code]))}${bt('mutGo', 'Pindahkan')}</div></div>
-    <div class="card"><h3 style="margin-bottom:10px">Riwayat mutasi</h3>${T(['Waktu', 'SKU', 'Whs', 'Batch', 'Dari', 'Ke', 'Jumlah'], mv.map(l => `<tr><td>${new Date(l.moved_at).toLocaleString('id-ID')}</td><td>${esc(l.sku)}</td><td>${esc(api.whsOf(l.sku, l.batch))}</td><td>${esc(l.batch)}</td><td>${esc(l.from_rack)}</td><td>${esc(l.to_rack)}</td><td class="num">${fmt(l.qty)}</td></tr>`))}</div>`;
+    `<div class="card"><h3 style="margin-bottom:10px">Pindah stok antar rak</h3><div class="row">${sel('mF', 'Dari (rak · SKU · batch)', stock.map((r, i) => [i, `${api.whsOf(r.sku, r.batch)} · ${r.rack_code} · ${r.sku} · ${bno(r.sku, r.batch)} (${fmt(r.qty)} ctn)`]))}${inp('mQ', 'Jumlah (carton)', '10', 'number')}${sel('mT', 'Ke rak', racks.map(r => [r.code, r.code]))}${bt('mutGo', 'Pindahkan')}</div></div>
+    <div class="card"><h3 style="margin-bottom:10px">Riwayat mutasi</h3>${T(['Waktu', 'SKU', 'Whs', 'Batch', 'Dari', 'Ke', 'Jumlah'], mv.map(l => `<tr><td>${new Date(l.moved_at).toLocaleString('id-ID')}</td><td>${esc(l.sku)}</td><td>${esc(api.whsOf(l.sku, l.batch))}</td><td>${esc(bno(l.sku, l.batch))}</td><td>${esc(l.from_rack)}</td><td>${esc(l.to_rack)}</td><td class="num">${fmt(l.qty)}</td></tr>`))}</div>`;
 }
 
 export function registerMutasiActions(A, go) {

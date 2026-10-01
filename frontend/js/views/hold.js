@@ -1,5 +1,5 @@
 import { api } from '../api.js';
-import { $, hd, T, bar, tag, inp, v, fmt, modal, toast, rpcErr, askConfirm, esc } from '../ui.js';
+import { bno, $, hd, T, bar, tag, inp, v, fmt, modal, toast, rpcErr, askConfirm, esc } from '../ui.js';
 
 const RS = { qc: 'Karantina QC', retur: 'Retur pelanggan', rusak: 'Rusak', kedaluwarsa: 'Kedaluwarsa' };
 const es = (n) => n < 0 ? tag('exp', 'Kedaluwarsa') : n <= 90 ? tag('near', '≤ 90 hari') : tag('Aman', 'Aman');
@@ -12,7 +12,7 @@ export async function renderHold() {
     const free = r.qty - r.held;
     const cur = r.holds.map(h => `${tag('hold', RS[h.reason] + ' · ' + fmt(h.qty) + ' ctn')} <button class="btn o s" data-a="holdRel" data-v="${esc(h.id)}">Lepas</button>`).join(' ');
     const sel = free > 0 ? `<select data-h="${i}"><option value="">Hold karena…</option>${Object.entries(RS).map(([k, l]) => `<option value="${esc(k)}">${esc(l)}</option>`).join('')}</select>` : '';
-    return `<tr><td>${esc(r.sku)}</td><td>${esc(api.whsOf(r.sku, r.batch))}</td><td>${esc(r.batch)}</td><td>${esc(r.rack)}</td><td class="num">${fmt(r.qty)}</td><td>${es(r.sisa)}</td><td>${sel} ${cur}</td></tr>`;
+    return `<tr><td>${esc(r.sku)}</td><td>${esc(api.whsOf(r.sku, r.batch))}</td><td>${esc(bno(r.sku, r.batch))}</td><td>${esc(r.rack)}</td><td class="num">${fmt(r.qty)}</td><td>${es(r.sisa)}</td><td>${sel} ${cur}</td></tr>`;
   }))}</div>`;
   $('#main').onchange = (e) => { const s = e.target.closest('select[data-h]'); if (s && s.value) { const k = s.value; s.value = ''; window.holdAsk(+s.dataset.h, k); } };
 }
@@ -20,7 +20,7 @@ export async function renderHold() {
 export function registerHoldActions(A, go) {
   window.holdAsk = (i, reason) => {
     const r = window._hold[i], free = r.qty - r.held;
-    modal(`Hold — ${RS[reason]}`, `<p class="l" style="margin:0 0 10px">${esc(r.sku)} · ${esc(r.batch)} · rak ${esc(r.rack)} · bebas ${fmt(free)} ctn</p>` + inp('hq', 'Jumlah di-hold (ctn)', free, 'number') + inp('hn', 'Catatan (opsional)'), 'Hold', 'holdGo', i + '|' + reason);
+    modal(`Hold — ${RS[reason]}`, `<p class="l" style="margin:0 0 10px">${esc(r.sku)} · ${esc(bno(r.sku, r.batch))} · rak ${esc(r.rack)} · bebas ${fmt(free)} ctn</p>` + inp('hq', 'Jumlah di-hold (ctn)', free, 'number') + inp('hn', 'Catatan (opsional)'), 'Hold', 'holdGo', i + '|' + reason);
   };
   A.holdGo = async (s) => {
     const [i, reason] = s.split('|'), r = window._hold[+i], q = +v('hq');

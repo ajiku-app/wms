@@ -29,7 +29,7 @@ const oneLabel = (b) => `<div class="lb"><div class="lh"><span>Serena Indopapang
 <div class="lbody"><div class="linfo"><div><div class="ls">${esc(b.sku)}</div><div class="ln">${esc(b.nama || '')}</div></div>
 <div class="lg"><div class="full"><small>Batch</small><b>${esc(fullBatch(b))}</b></div><div class="hi"><small>Kedaluwarsa (ED)</small>${esc(b.exp)}</div><div><small>Tgl produksi</small>${esc(b.prod || '—')}</div>
 <div class="hi"><small>Rak tujuan</small>${esc(b.loc || '—')}</div><div><small>PIC</small>${esc(b.pic || '—')}</div></div></div>
-<div class="lqr">${b.svg}<span class="qp">${b.pal ? esc('PALLET ' + b.pal) : 'SCAN QR'}</span><span class="qn${fmt(b.q).length > 4 ? ' qs' : ''}">${fmt(b.q)}</span><span class="qk">CTN · ${fmt(b.pcs)} pcs</span></div></div></div>`;
+<div class="lqr">${b.svg}<span class="qp">${b.pal ? esc('PALLET ' + b.pal) : 'SCAN QR'}</span><span class="qn${fmt(b.q).length > 4 ? ' qs' : ''}">${fmt(b.q)}</span><span class="qk">CTN</span></div></div></div>`;
 // 9 label per lembar A4 (3 x 3)
 const labelsHTML = (L) => { let h = ''; for (let i = 0; i < L.length; i += 9) h += `<div class="pg">${L.slice(i, i + 9).map(oneLabel).join('')}</div>`; return h; };
 

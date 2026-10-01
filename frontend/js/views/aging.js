@@ -1,9 +1,9 @@
 import { api } from '../api.js';
-import { $, T, fmt, v, rpcErr, esc, csvCell } from '../ui.js';
+import { bno, $, T, fmt, v, rpcErr, esc, csvCell } from '../ui.js';
 
 let D = 30, data = null, tmr = null;
 const batchTbl = () => `<h3 style="margin:18px 0 6px" id="agh">Batch dengan ED ≤ ${D} hari (${data.batches.length})</h3>${T(['SKU', 'Whs', 'Batch', 'Rak', 'Sisa hari', 'Ctn'].map((h, i) => i > 3 ? `<span style="display:block;text-align:right">${esc(h)}</span>` : h),
-  data.batches.map(b => `<tr><td>${esc(b.sku)}</td><td>${esc(api.whsOf(b.sku, b.batch))}</td><td>${esc(b.batch)}</td><td>${esc(b.rack)}</td><td class="num">${esc(b.sisa)}</td><td class="num">${fmt(b.qty)}</td></tr>`))}`;
+  data.batches.map(b => `<tr><td>${esc(b.sku)}</td><td>${esc(api.whsOf(b.sku, b.batch))}</td><td>${esc(bno(b.sku, b.batch))}</td><td>${esc(b.rack)}</td><td class="num">${esc(b.sisa)}</td><td class="num">${fmt(b.qty)}</td></tr>`))}`;
 
 export async function renderAging() {
   data = await api.aging(D); await api.whsEnsure(data.batches);
@@ -20,7 +20,7 @@ export function registerAgingActions(A) {
   A.agCsv = () => {
     const q = (r) => r.map(csvCell).join(',');
     const out = [q(['Aging per SKU (ctn)']), q(['SKU', 'Nama', '0-30', '31-90', '91-180', '>180', 'Expired']), ...data.skus.map(s => q([s.sku, s.name, s.b0, s.b1, s.b2, s.b3, s.exp])),
-      '', q([`Batch dengan ED <= ${D} hari`]), q(['SKU', 'Batch', 'Rak', 'Sisa hari', 'Ctn']), ...data.batches.map(b => q([b.sku, b.batch, b.rack, b.sisa, b.qty]))];
+      '', q([`Batch dengan ED <= ${D} hari`]), q(['SKU', 'Batch', 'Rak', 'Sisa hari', 'Ctn']), ...data.batches.map(b => q([b.sku, bno(b.sku, b.batch), b.rack, b.sisa, b.qty]))];
     const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob(['\ufeff' + out.join('\n')], { type: 'text/csv' }));
     a.download = 'laporan-aging-ed.csv'; a.click(); URL.revokeObjectURL(a.href);
   };
