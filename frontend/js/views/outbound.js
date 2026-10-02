@@ -1,4 +1,5 @@
 import { api } from '../api.js';
+import { ME } from '../auth.js';
 import { bno, askConfirm, askText, $, hd, T, bar, bt, ic, tag, sel, inp, v, fmt, toast, rpcErr, findFreeNo, modal, esc } from '../ui.js';
 
 let dob = []; // baris SKU+qty sementara sebelum outbound dibuat
@@ -91,6 +92,13 @@ export function registerOutboundActions(A, go) {
   };
   A.obDone = async (no) => {
     if (!await askConfirm('Selesaikan Pengiriman', 'Selesaikan pengiriman ini? Stok akan dikurangi sesuai barang yang sudah di-pick.', 'Selesaikan')) return;
-    try { await api.completeOutbound(no); toast('Pengiriman selesai.'); go('out', no); } catch (e) { rpcErr(e); }
+    try { await api.completeOutbound(no); toast('Pengiriman selesai.'); go('out', no); }
+    catch (e) {
+      // v2.0.13: server menolak bila pesanan belum terpenuhi penuh. Admin/supervisor boleh menyelesaikan sebagian.
+      if (/belum terpenuhi/.test((e && e.message) || '') && ME && ['admin', 'supervisor'].includes(ME.role)) {
+        if (!await askConfirm('Pesanan belum terpenuhi penuh', String(e.message).replace(/^.*ERROR:\s*/, '') + ' Selesaikan sebagian (kirim yang sudah di-pick saja)?', 'Selesaikan Sebagian')) return;
+        try { await api.completeOutbound(no, true); toast('Pengiriman selesai (sebagian).'); go('out', no); } catch (e2) { rpcErr(e2); }
+      } else rpcErr(e);
+    }
   };
 }

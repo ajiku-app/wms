@@ -50,3 +50,22 @@ langsung tanpa Packing List). Fungsi itu **sudah dihapus** dari database oleh
 proses pengerasan keamanan otomatis Supabase. Aplikasi ini tidak pernah
 memakainya — alur inbound selalu lewat Packing List → `wms_inbound_create` →
 `wms_inbound_receive_line` — jadi tidak ada dampak.
+
+## Urutan eksekusi di database BARU (v2.0.13)
+
+| # | File | Keterangan |
+|---|---|---|
+| 1 | `schema.sql` | tabel dasar |
+| 2 | `policies.sql` | RLS |
+| 3 | `functions.sql` | fungsi awal (snapshot; sebagian digantikan migrasi di bawah) |
+| 4 | `migrate_gr_batch.sql` | No GR + format batch `YYYYMMDD.NNN` |
+| 5 | `migrate_wms_v2.sql` | putaway, hold, kapasitas, dashboard, aging |
+| 6 | `migrate_v2_0_11_batas_terima.sql` | terima tidak boleh melebihi PL |
+| 7 | `migrate_v2_0_12_outbound_items.sql` | `outbound_items` + `wms_outbound_set_items` |
+| 8 | `migrate_pl_edit_delete.sql` | edit/hapus Packing List |
+| 9 | `migrate_v2_0_13_sinkron.sql` | **perbaikan sinkronisasi** (whs, picker FEFO, validasi DO, kapasitas, opname, batch) |
+| 10 | `realtime.sql` | Realtime |
+
+Aturan: **jangan menjalankan ulang `functions.sql`** di database yang sudah berjalan, dan
+**jangan menjalankan folder `supabase-arsip/` dari repo scan-wms** (versi lama, menimpa fungsi di atas).
+Nilai `suppliers."Whs"` (kode warehouse, mis. FG-01) diisi manual, mis. `update suppliers set "Whs"='FG-01' where name='...';`

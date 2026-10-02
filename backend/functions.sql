@@ -1,3 +1,14 @@
+-- ############################################################
+-- PERHATIAN (v2.0.13): file ini adalah SNAPSHOT AWAL (29 Sep 2026).
+-- Fungsi berikut sudah DIGANTI oleh migrasi dan versi di bawah ini USANG:
+--   wms_inbound_receive_line, wms_move, fefo_allocate, wms_pick,
+--   wms_outbound_create, wms_outbound_complete, wms_rack_add,
+--   wms_opname_post, wms_pl_add_line
+-- Untuk database BARU: jalankan file ini, lalu SEMUA migrasi sesuai
+-- urutan di backend/README.md (berakhir di migrate_v2_0_13_sinkron.sql).
+-- JANGAN menjalankan ulang file ini di database yang sudah berjalan.
+-- ############################################################
+
 -- ============================================================
 -- BACKEND — FUNGSI (API sesungguhnya aplikasi ini)
 -- Semua ditulis SECURITY DEFINER: berjalan dengan hak akses

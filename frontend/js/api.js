@@ -114,7 +114,9 @@ export const api = {
   addPackingListLine: (pl, sku, batch, productionDate, expiry, qty, gr) =>
     sb.rpc('wms_pl_add_line', { p_pl: pl, p_sku: sku, p_batch: batch, p_production: productionDate || null, p_expiry: expiry, p_qty: qty, p_gr: gr || null }).then(unwrap),
   // nomor urut batch berikutnya untuk SKU + tanggal ED (mis. 20270930.001 -> .002)
-  nextBatchSeq: async (sku, ymd) => { try { const d = await sb.from('packing_list_lines').select('batch').eq('sku', sku).like('batch', ymd + '.%').then(unwrap); const n = Math.max(0, ...(d || []).map(r => parseInt(String(r.batch).split('.').pop(), 10) || 0)); return String(n + 1).padStart(3, '0'); } catch (e) { return '001'; } },
+  // v2.0.13: nomor batch dihitung di server (melihat PL open, inbound, stok & riwayat). Fallback ke hitungan klien bila fungsi belum ada.
+  nextBatchSeq: async (sku, ymd) => { try { const r = await sb.rpc('wms_next_batch_seq', { p_sku: sku, p_ymd: ymd }); if (!r.error && r.data != null) return String(r.data).padStart(3, '0'); } catch (e) {} return api.nextBatchSeqLocal(sku, ymd); },
+  nextBatchSeqLocal: async (sku, ymd) => { try { const d = await sb.from('packing_list_lines').select('batch').eq('sku', sku).like('batch', ymd + '.%').then(unwrap); const n = Math.max(0, ...(d || []).map(r => parseInt(String(r.batch).split('.').pop(), 10) || 0)); return String(n + 1).padStart(3, '0'); } catch (e) { return '001'; } },
 
   // ---- inbound ----
   listInboundDocs: () => sb.from('inbound_docs').select('no,doc_date,supplier,status').order('created_at', { ascending: false }).then(unwrap),
@@ -137,7 +139,7 @@ export const api = {
     sb.rpc('wms_outbound_create', { p_no: no, p_customer: customer, p_phone: phone, p_address: address, p_whs: whs || null }).then(unwrap),
   fefoAllocate: (doc, sku, qty) => sb.rpc('fefo_allocate', { p_doc: doc, p_sku: sku, p_qty: qty }).then(unwrap),
   pick: (doc, sku, batch, rack, qty) => sb.rpc('wms_pick', { p_doc: doc, p_sku: sku, p_batch: batch, p_rack: rack, p_qty: qty }).then(unwrap),
-  completeOutbound: (no) => sb.rpc('wms_outbound_complete', { p_doc: no }).then(unwrap),
+  completeOutbound: (no, allowShort = false) => sb.rpc('wms_outbound_complete', { p_doc: no, p_allow_short: !!allowShort }).then(unwrap),
 
   // ---- mutasi ----
   listStockForMove: () => sb.from('stock').select('sku,batch,rack_code,qty').gt('qty', 0).order('rack_code').then(unwrap),

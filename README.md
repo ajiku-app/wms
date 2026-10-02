@@ -98,3 +98,15 @@ Merilis versi baru:
 
 Catatan: repo harus **publik** agar aplikasi bisa mengunduh pembaruan tanpa token.
 Versi pertama yang berisi fitur ini (2.0.1) harus dipasang manual sekali.
+
+## Kirim ke GitHub & rilis otomatis
+
+Dari folder repo (Git Bash, atau `rilis.bat` di Windows):
+
+```bash
+bash rilis.sh "pesan commit"          # hanya commit + push ke main
+bash rilis.sh 2.0.13 "pesan commit"   # commit + tag v2.0.13 + push -> installer Windows dibangun
+                                      # & PC yang sudah terpasang menerima update otomatis
+```
+`ci.yml` memeriksa sintaks JS di setiap push/PR dan memastikan tag = versi `desktop/package.json`.
+Migrasi database (`backend/migrate_*.sql`) **tidak** otomatis: jalankan manual di Supabase SQL Editor (backup dulu).

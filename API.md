@@ -42,7 +42,8 @@ memanggil `wms_set_role`.
 | `wms_set_role` | `p_user, p_role` | admin, supervisor | Users Management |
 | `wms_user_set_active` | `p_user, p_active` | admin, supervisor | Users Management |
 | `wms_product_add` | `p_sku, p_name, p_cpp` | admin, supervisor | Master Produk |
-| `wms_rack_add` | `p_code, p_zone` | admin, supervisor | Master Rak |
+| `wms_rack_add` | `p_code, p_zone, p_capacity` (default 0) — kode wajib `ZONA-BIM-LEVEL` (mis. `A-01-03`) | admin, supervisor | Master Rak |
+| `wms_rack_set_capacity` | `p_code, p_capacity` | admin, supervisor | Master Rak |
 | `wms_rack_set_active` | `p_code, p_active` | admin, supervisor | Master Rak |
 | `wms_supplier_add` | `p_name` | inbound, admin, supervisor | Master Pemasok |
 | `wms_customer_add` | `p_name, p_phone, p_address` | picker, admin, supervisor | Master Customer |
@@ -51,20 +52,21 @@ memanggil `wms_set_role`.
 | `wms_inbound_create` | `p_no, p_pl` | inbound, admin, supervisor | Inbound |
 | `wms_inbound_receive_line` | `p_doc, p_sku, p_batch, p_qty, p_rack` | inbound, admin, supervisor | Inbound — menambah stok |
 | `wms_inbound_complete` | `p_doc` | inbound, admin, supervisor | Inbound |
-| `wms_outbound_create` | `p_no, p_customer, p_phone, p_address` | picker, admin, supervisor | Outbound |
-| `fefo_allocate` | `p_doc, p_sku, p_qty` → return sisa yang tak terpenuhi | admin, supervisor* | Outbound — alokasi FEFO |
+| `wms_outbound_create` | `p_no, p_customer, p_phone, p_address, p_whs` (opsional) | picker, admin, supervisor | Outbound |
+| `fefo_allocate` | `p_doc, p_sku, p_qty` → return sisa yang tak terpenuhi (melewati stok hold, kedaluwarsa, dan GR-STAGING) | picker, admin, supervisor | Outbound — alokasi FEFO |
 | `wms_pick` | `p_doc, p_sku, p_batch, p_rack, p_qty` | picker, admin, supervisor | Outbound — catat pick, kurangi stok |
 | `wms_outbound_set_items` | `p_doc, p_items` (`[{sku, qty}]`) | picker, admin, supervisor | Outbound |
-| `wms_outbound_complete` | `p_doc` | picker, admin, supervisor | Outbound |
+| `wms_outbound_complete` | `p_doc, p_allow_short` (default false). Ditolak bila picking list kosong atau pesanan (`outbound_items`) belum terpenuhi; `p_allow_short=true` hanya berlaku untuk admin/supervisor | picker, admin, supervisor | Outbound |
 | `wms_move` | `p_sku, p_batch, p_from, p_to, p_qty` | inbound, admin, supervisor | Mutasi |
 | `wms_opname_create` | `p_no, p_sku, p_counter` | admin, supervisor | Stok Opname |
 | `wms_opname_set_line` | `p_doc, p_batch, p_rack, p_physical` | admin, supervisor | Stok Opname |
 | `wms_opname_post` | `p_doc` → return `{selisih}` | admin, supervisor | Stok Opname |
+| `wms_putaway` | `p_sku, p_batch, p_rack, p_qty` | inbound, admin, supervisor | Putaway |
+| `wms_next_batch_seq` | `p_sku, p_ymd` → nomor urut batch berikutnya | inbound, admin, supervisor | Packing List |
+| `wms_hold_set` / `wms_hold_release` | `p_sku, p_batch, p_rack, p_qty, p_reason, p_note` / `p_id` | admin, supervisor | Hold & Karantina |
 | `wms_adjust` | `p_sku, p_batch, p_rack, p_new_qty, p_reason` | admin, supervisor | Penyesuaian Stok |
 
-*\*`fefo_allocate` saat ini hanya diperbolehkan untuk admin/supervisor karena
-dipanggil dari alur Outbound Manual, yang juga terbatas pada picker/admin/
-supervisor — picker memanggilnya via alur yang sama di frontend.*
+Catatan v2.0.13: `wms_inbound_receive_line` menolak jumlah di atas Jumlah PL dan, bila diterima langsung ke rak (bukan `GR-STAGING`), menolak melebihi kapasitas rak. `wms_pick` menolak batch kedaluwarsa. `wms_opname_post` menghitung selisih terhadap stok saat posting.
 
 Semua fungsi mengembalikan `jsonb`, minimal `{"ok": true}` bila sukses, dan
 melempar error (HTTP 400 dari PostgREST) dengan pesan berbahasa Indonesia

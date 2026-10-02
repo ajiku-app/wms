@@ -1,0 +1,21 @@
+# Cek otomatis setiap push/PR: sintaks JavaScript + (untuk tag v*) versi tag harus sama dengan desktop/package.json.
+name: CI
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+jobs:
+  cek:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - name: Cek sintaks JS
+        run: find frontend desktop -name '*.js' -not -path '*/node_modules/*' -print0 | xargs -0 -n1 node --check
+      - name: Versi tag = versi desktop
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          V=$(node -p "require('./desktop/package.json').version")
+          [ "v$V" = "${GITHUB_REF_NAME}" ] || { echo "Tag ${GITHUB_REF_NAME} tidak sama dengan desktop/package.json ($V)"; exit 1; }
