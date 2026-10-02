@@ -66,6 +66,8 @@ memanggil `wms_set_role`.
 | `wms_hold_set` / `wms_hold_release` | `p_sku, p_batch, p_rack, p_qty, p_reason, p_note` / `p_id` | admin, supervisor | Hold & Karantina |
 | `wms_adjust` | `p_sku, p_batch, p_rack, p_new_qty, p_reason` | admin, supervisor | Penyesuaian Stok |
 
+Catatan v2.0.17: kapasitas rak (`racks.capacity`) kini dalam **pallet per bin loc** (1 pallet = 1 baris stok SKU+batch). `wms_move` dan `wms_putaway` selalu memindahkan satu pallet utuh (`p_qty` null atau sama dengan isi pallet), menolak pallet yang di-hold atau sudah dialokasikan outbound, dan menolak bila bin tujuan penuh. Barang inbound hanya boleh masuk `GR-STAGING` (dijaga trigger `trg_guard_movement`). `wms_freeze_set(p_active, p_note)` (admin/supervisor) menyalakan/mematikan FREEZE: selama aktif, semua penulisan `stock_movements` ditolak kecuali posting selisih opname yang masih terbuka. Status dibaca dari tabel `wms_freeze`.
+
 Catatan v2.0.13: `wms_inbound_receive_line` menolak jumlah di atas Jumlah PL dan, bila diterima langsung ke rak (bukan `GR-STAGING`), menolak melebihi kapasitas rak. `wms_pick` menolak batch kedaluwarsa. `wms_opname_post` menghitung selisih terhadap stok saat posting.
 
 Semua fungsi mengembalikan `jsonb`, minimal `{"ok": true}` bila sukses, dan
@@ -73,7 +75,7 @@ melempar error (HTTP 400 dari PostgREST) dengan pesan berbahasa Indonesia
 bila gagal — pesan ini yang ditangkap dan ditampilkan `rpcErr()` di frontend.
 
 ## Menambah endpoint baru
-1. Tulis fungsinya di `backend/functions.sql` (atau via migration terpisah).
+1. Buat file migrasi dan tulis juga fungsinya di `backend/functions.sql` (sumber kebenaran; cek dengan `export-snapshot.sql` query 6).
 2. Tambahkan satu baris di `frontend/js/api.js` yang memanggilnya.
 3. Panggil `api.namaFungsi(...)` dari file `views/*.js` — jangan pernah
    memanggil `sb.rpc()`/`sb.from()` langsung dari file view.

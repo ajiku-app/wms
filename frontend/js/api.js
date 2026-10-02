@@ -177,6 +177,8 @@ export const api = {
   // ---- v2: dashboard, stok server-side, putaway, hold, kartu stok, aging ----
   dashboard: () => sb.rpc('wms_dashboard').then(unwrap),
   rackLoad: () => sb.rpc('wms_rack_load').then(unwrap),
+  freezeStatus: () => sb.from('wms_freeze').select('active,note,changed_at').eq('id', 1).maybeSingle().then(unwrap),
+  setFreeze: (active, note) => sb.rpc('wms_freeze_set', { p_active: active, p_note: note || null }).then(unwrap),
   stockByRack: (code) => sb.from('stock').select('sku,batch,expiry,qty,products(name)').eq('rack_code', code).gt('qty', 0).order('expiry').then(unwrap),
   stockPage: (o) => sb.rpc('wms_stock_page', { p_q: o.q, p_status: o.st, p_limit: o.lim, p_offset: o.off, p_sort: o.sort, p_dir: o.dir }).then(unwrap),
   stagingPending: () => sb.rpc('wms_staging_pending').then(unwrap),

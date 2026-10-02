@@ -9,7 +9,7 @@ const pct = (u, c) => c > 0 ? Math.round(u / c * 100) : null;
 const lvl = (p) => p === null ? 'na' : p >= FULL ? 'full' : p >= WARN ? 'warn' : '';
 const ST = { full: 'Penuh', part: 'Tersisa', empty: 'Kosong' };
 const stOf = (used, cap) => !(used > 0) ? 'empty' : (cap > 0 && used >= cap) ? 'full' : 'part'; // kosong abu, terisi kuning, penuh merah
-const rackTile = (r) => { const s = stOf(r.used, r.capacity); return `<button class="rt ${s}" data-a="rackOpen" data-v="${esc(r.code)}"><b>${esc(r.code)}</b><span>${esc(ST[s])}</span><small>${esc(fmt(r.used || 0) + (r.capacity > 0 ? '/' + fmt(r.capacity) : '') + ' ctn')}</small></button>`; };
+const rackTile = (r) => { const s = stOf(r.used, r.capacity); return `<button class="rt ${s}" data-a="rackOpen" data-v="${esc(r.code)}"><b>${esc(r.code)}</b><span>${esc(ST[s])}</span><small>${esc(fmt(r.used || 0) + (r.capacity > 0 ? '/' + fmt(r.capacity) : '') + ' pallet')}</small></button>`; };
 const blokOf = (r) => String(r.code).charAt(0).toUpperCase();
 
 export async function renderDashboard() {
@@ -32,7 +32,7 @@ export async function renderDashboard() {
   const cnt = { full: 0, part: 0, empty: 0 };
   const tiles = Object.keys(blok).sort().map(k => {
     const b = blok[k], s = stOf(b.used, b.cap); cnt[s]++;
-    return `<button class="rt g ${s}" data-a="blokOpen" data-v="${esc(k)}"><b>Rak ${esc(k)}</b><span>${esc(ST[s])}</span><small>${esc(fmt(b.used) + (b.cap > 0 ? '/' + fmt(b.cap) : '') + ' ctn · ' + b.n + ' lokasi')}</small></button>`;
+    return `<button class="rt g ${s}" data-a="blokOpen" data-v="${esc(k)}"><b>Rak ${esc(k)}</b><span>${esc(ST[s])}</span><small>${esc(fmt(b.used) + (b.cap > 0 ? '/' + fmt(b.cap) : '') + ' pallet · ' + b.n + ' lokasi')}</small></button>`;
   }).join('');
 
   $('#main').innerHTML = `<div class="kpis">${kpi('Total stok (ctn)', fmt(d.total))}${kpi('Tersedia untuk FEFO', fmt(d.available))}${kpi('Inbound / outbound proses', d.inbound_open + ' / ' + d.outbound_open)}${kpi('Exception terbuka', d.exceptions, d.exceptions > 0 ? 'bad' : '', exTip)}</div>

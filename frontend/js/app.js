@@ -179,7 +179,7 @@ async function refreshNow() {
 function stopLive() { if (unsub) { unsub(); unsub = null; } clearInterval(tmr); tmr = null; }
 function startLive() {
   stopLive();
-  unsub = subscribeChanges(() => { pend = true; }, (st) => {
+  unsub = subscribeChanges(() => { pend = true; if (Date.now() - fzAt > 2000) fzRefresh(); }, (st) => {
     const d = $('#live'); if (!d) return;
     d.classList.toggle('on', st === 'SUBSCRIBED');
     d.title = st === 'SUBSCRIBED' ? 'Auto refresh aktif' : 'Auto refresh: ' + st;
@@ -197,7 +197,7 @@ function renderShell() {
   root.innerHTML = `<div class="app"><div id="scrim"></div><aside id="side" class="hide"><div class="brand"><img class="bl" src="img/logo.svg" alt="WMS"><div class="bt"><span class="w">WMS</span><span class="f">FG Warehouse</span></div></div><div id="nav"></div>
   <div class="sf"><span class="av">${esc((me.name || '?')[0].toUpperCase())}</span><div><b>${esc(me.name)}</b><small>${esc(me.role)}</small></div><button class="btn o s" id="lo">Keluar</button></div></aside>
   <div class="mainw"><div class="top"><button id="tg" aria-label="Menu">☰</button><h2 id="ttl"></h2><span class="bdg" id="bdg"></span><span id="live" title="Auto refresh: menghubungkan…"></span>
-  <div class="u"><label class="pr">Peran<select id="rp" ${canPreview ? '' : 'disabled'} title="${canPreview ? 'Pratinjau menu per peran (hak akses tetap dicek server)' : 'Peran akun Anda'}">${ROLES.map(r => `<option value="${esc(r[0])}" ${r[0] === me.role ? 'selected' : ''}>${esc(r[1])}</option>`).join('')}</select></label><button class="btn o" id="th">Tema</button></div></div><main id="main"></main></div></div>
+  <div class="u"><label class="pr">Peran<select id="rp" ${canPreview ? '' : 'disabled'} title="${canPreview ? 'Pratinjau menu per peran (hak akses tetap dicek server)' : 'Peran akun Anda'}">${ROLES.map(r => `<option value="${esc(r[0])}" ${r[0] === me.role ? 'selected' : ''}>${esc(r[1])}</option>`).join('')}</select></label><button class="btn o" id="th">Tema</button></div></div><div id="fzb" class="fzb" style="display:none"></div><main id="main"></main></div></div>
   <div id="mod"></div>`;
   $('#lo').onclick = () => auth.signOut();
   appVersion().then(v => { const b = $('.brand'); if (v && b) b.insertAdjacentHTML('beforeend', `<small>Versi ${esc(v)}</small>`); });
@@ -206,7 +206,19 @@ function renderShell() {
   $('#th').onclick = () => theme(document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark');
   $('#rp').onchange = (e) => { viewRole = e.target.value === me.role ? null : e.target.value; nav(); go(cur); };
   document.body.onclick = (e) => { const b = e.target.closest('[data-a]'); if (b && Object.hasOwn(A, b.dataset.a)) A[b.dataset.a](b.dataset.v); };
-  nav(); go(...parseRoute(), true); startLive();
+  document.addEventListener('wms-freeze', fzRefresh);
+  nav(); go(...parseRoute(), true); startLive(); fzRefresh();
+}
+
+// Banner FREEZE (stok opname): tampil di semua halaman selama gudang di-freeze
+let fzAt = 0;
+async function fzRefresh() {
+  fzAt = Date.now();
+  try {
+    const f = await api.freezeStatus(), el = $('#fzb'); if (!el) return;
+    el.style.display = f?.active ? '' : 'none';
+    el.innerHTML = f?.active ? '<b>GUDANG DI-FREEZE</b> — stok opname berlangsung; terima, pick, pindah, putaway, dan penyesuaian ditolak sampai di-unfreeze.' + (f.note ? ' · ' + esc(f.note) : '') : '';
+  } catch (e) { /* tabel belum ada: migrasi v2.0.17 belum dijalankan */ }
 }
 
 export async function boot() {

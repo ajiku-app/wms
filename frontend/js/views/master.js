@@ -13,11 +13,11 @@ export async function renderMRak() {
   if (f && !letters.includes(f)) f = '';
   const rowsHtml = () => data.filter(r => !f || String(r.code).toUpperCase().startsWith(f)).map(r => `<tr><td>${esc(r.code)}</td><td>${esc(r.zone || '—')}</td><td class="num">${r.capacity ? fmt(r.capacity) : '—'}</td><td>${tag(r.active ? 'Bagus' : 'Rusak')}</td><td>${ic('rkTg', r.code + '|' + (!r.active), 'Ubah kondisi')} ${ic('rkCap', r.code, 'Kapasitas')}</td></tr>`);
   const chips = () => `<div class="chips"><button data-f="" class="${f ? '' : 'on'}">Semua (${data.length})</button>${letters.map(l => `<button data-f="${esc(l)}" class="${f === l ? 'on' : ''}">${esc(l)} (${data.filter(r => String(r.code).toUpperCase().startsWith(l)).length})</button>`).join('')}</div>`;
-  $('#main').innerHTML = hd('Master — Rak') + `<div class="card">${bar(bt('rkM', '+ Tambah'))}<div id="rkC">${chips()}</div><div id="rkT">${T(['Kode Rak', 'Zona', 'Kapasitas (ctn)', 'Kondisi', 'Aksi'], rowsHtml())}</div></div>`;
+  $('#main').innerHTML = hd('Master — Rak') + `<div class="card">${bar(bt('rkM', '+ Tambah'))}<div id="rkC">${chips()}</div><div id="rkT">${T(['Kode Rak', 'Zona', 'Kapasitas (pallet)', 'Kondisi', 'Aksi'], rowsHtml())}</div></div>`;
   $('#rkC').onclick = (e) => {
     const b = e.target.closest('button[data-f]'); if (!b) return;
     f = window.__rkF = b.dataset.f;
-    $('#rkC').innerHTML = chips(); $('#rkT').innerHTML = T(['Kode Rak', 'Zona', 'Kapasitas (ctn)', 'Kondisi', 'Aksi'], rowsHtml());
+    $('#rkC').innerHTML = chips(); $('#rkT').innerHTML = T(['Kode Rak', 'Zona', 'Kapasitas (pallet)', 'Kondisi', 'Aksi'], rowsHtml());
   };
 }
 export async function renderMPemasok() {
@@ -36,7 +36,7 @@ export function registerMasterActions(A, go) {
     if (!sku || !nama) return toast('Lengkapi SKU dan nama.');
     try { await api.addProduct(sku, nama, cpp); A.mx(); toast('Produk ditambahkan.'); go('mProduk'); } catch (e) { rpcErr(e); }
   };
-  A.rkM = () => modal('Tambah Rak', inp('f_kode', 'Kode rak*') + inp('f_zone', 'Zona') + inp('f_cap', 'Kapasitas (ctn, 0 = belum diisi)', '0', 'number'), 'Simpan', 'rkAdd');
+  A.rkM = () => modal('Tambah Rak', inp('f_kode', 'Kode rak*') + inp('f_zone', 'Zona') + inp('f_cap', 'Kapasitas (pallet per bin, 0 = tidak dibatasi)', '3', 'number'), 'Simpan', 'rkAdd');
   A.rkAdd = async () => {
     const c = v('f_kode').trim(); if (!c) return toast('Isi kode rak.');
     try { await api.addRack(c, v('f_zone'), Math.max(0, +v('f_cap') || 0)); A.mx(); toast('Rak ditambahkan.'); go('mRak'); } catch (e) { rpcErr(e); }
@@ -46,7 +46,7 @@ export function registerMasterActions(A, go) {
     try { await api.setRackActive(code, act === 'true'); go('mRak'); } catch (e) { rpcErr(e); }
   };
   A.rkCap = async (code) => {
-    const t = await askText('Kapasitas ' + code, 'Kapasitas (ctn)', 'Simpan', 'mis. 300'); if (t === null) return;
+    const t = await askText('Kapasitas ' + code, 'Kapasitas (pallet per bin)', 'Simpan', 'mis. 3'); if (t === null) return;
     const n = parseInt(t, 10); if (!(n >= 0)) return toast('Isi angka 0 atau lebih.');
     try { await api.setRackCapacity(code, n); toast('Kapasitas disimpan.'); go('mRak'); } catch (e) { rpcErr(e); }
   };

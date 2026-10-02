@@ -59,8 +59,8 @@ export function registerLabelActions(A) {
     lines.sort((a, b) => String(a.sku).localeCompare(String(b.sku)) || String(a.batch).localeCompare(String(b.batch)));
     LB = { no, lines, names };
     const def = () => '0'; // tiap batch sudah = 1 pallet (dipecah di Packing List)
-    const body = '<div class="lpm">' + lines.map((x, i) => `<div class="lpr"><div class="lpi"><b>${esc(x.sku)}</b><span>${esc(x.products?.name || '')}</span><small>Batch ${esc(bno(x.sku, x.batch))} · Total ${fmt(qtyOf(x))} ctn</small></div><label>Isi per pallet (ctn)<input id="lp${i}" type="number" min="0" value="${esc(def())}"></label><div class="lpv" id="lv${i}"></div></div>`).join('')
-      + '<p class="lpt" id="lpt"></p><p class="l" style="margin:0">Isi 0 = 1 label per batch (tiap batch sudah 1 pallet). Isi angka hanya untuk batch lama yang belum dipecah per pallet.</p></div>';
+    const body = '<div class="lpm">' + lines.map((x, i) => `<div class="lpr"><div class="lpi"><b>${esc(x.sku)}</b><span>${esc(x.products?.name || '')}</span><small>Batch ${esc(bno(x.sku, x.batch))} · Total ${fmt(qtyOf(x))} ctn</small></div><div class="lpv" id="lv${i}"></div></div>`).join('')
+      + '<p class="lpt" id="lpt"></p><p class="l" style="margin:0">Satu label = satu pallet = satu batch. Pallet dipecah di Packing List, bukan saat cetak label, supaya tidak ada label ganda.</p></div>';
     modal('Cetak Label — ' + no, body, 'Cetak Label', 'lblGo', no);
     $('#mod').oninput = lblPrev; lblPrev();
   };

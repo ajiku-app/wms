@@ -34,7 +34,7 @@ folder ini adalah salinan persis dari apa yang berjalan di project Supabase
 `wms`, dibagi tiga:
 - `schema.sql` — struktur tabel
 - `policies.sql` — siapa boleh membaca apa
-- `functions.sql` — logika bisnis (satu-satunya jalan mengubah data)
+- `functions.sql` — logika bisnis, sumber kebenaran fungsi (konsolidasi v2.0.18); `functions_initial.sql` hanya untuk bootstrap DB baru
 
 Detail lebih lanjut ada di `backend/README.md`.
 
