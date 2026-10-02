@@ -26,28 +26,28 @@ alter table public.stock_movements enable row level security;
 
 -- profiles: pengguna bisa lihat dirinya sendiri, dan siapapun yang sudah
 -- punya role bisa lihat semua profil (untuk memilih PIC, dsb.)
-create policy p_profiles on public.profiles for select
+create policy p_profiles on public.profiles for select to authenticated
   using (id = auth.uid() or wms_role() is not null);
 
-create policy p_products on public.products for select using (wms_role() is not null);
-create policy p_racks    on public.racks    for select using (wms_role() is not null);
-create policy p_suppliers on public.suppliers for select using (wms_role() is not null);
-create policy p_customers on public.customers for select using (wms_role() is not null);
-create policy p_stock    on public.stock    for select using (wms_role() is not null);
+create policy p_products on public.products for select to authenticated using (wms_role() is not null);
+create policy p_racks    on public.racks    for select to authenticated using (wms_role() is not null);
+create policy p_suppliers on public.suppliers for select to authenticated using (wms_role() is not null);
+create policy p_customers on public.customers for select to authenticated using (wms_role() is not null);
+create policy p_stock    on public.stock    for select to authenticated using (wms_role() is not null);
 
-create policy p_pl       on public.packing_lists      for select using (wms_role() = any(array['inbound','admin','supervisor']));
-create policy p_pl_lines on public.packing_list_lines  for select using (wms_role() = any(array['inbound','admin','supervisor']));
-create policy p_in_docs  on public.inbound_docs        for select using (wms_role() = any(array['inbound','admin','supervisor']));
-create policy p_in_lines on public.inbound_lines       for select using (wms_role() = any(array['inbound','admin','supervisor']));
+create policy p_pl       on public.packing_lists      for select to authenticated using (wms_role() = any(array['inbound','admin','supervisor']));
+create policy p_pl_lines on public.packing_list_lines  for select to authenticated using (wms_role() = any(array['inbound','admin','supervisor']));
+create policy p_in_docs  on public.inbound_docs        for select to authenticated using (wms_role() = any(array['inbound','admin','supervisor']));
+create policy p_in_lines on public.inbound_lines       for select to authenticated using (wms_role() = any(array['inbound','admin','supervisor']));
 
-create policy p_out_docs on public.outbound_docs  for select using (wms_role() = any(array['picker','admin','supervisor']));
-create policy p_out_pick on public.outbound_picks for select using (wms_role() = any(array['picker','admin','supervisor']));
-create policy p_out_items on public.outbound_items for select using (wms_role() = any(array['picker','admin','supervisor']));
+create policy p_out_docs on public.outbound_docs  for select to authenticated using (wms_role() = any(array['picker','admin','supervisor']));
+create policy p_out_pick on public.outbound_picks for select to authenticated using (wms_role() = any(array['picker','admin','supervisor']));
+create policy p_out_items on public.outbound_items for select to authenticated using (wms_role() = any(array['picker','admin','supervisor']));
 
-create policy p_opname_docs  on public.opname_docs  for select using (wms_role() = any(array['admin','supervisor']));
-create policy p_opname_lines on public.opname_lines for select using (wms_role() = any(array['admin','supervisor']));
+create policy p_opname_docs  on public.opname_docs  for select to authenticated using (wms_role() = any(array['admin','supervisor']));
+create policy p_opname_lines on public.opname_lines for select to authenticated using (wms_role() = any(array['admin','supervisor']));
 
-create policy p_moves on public.stock_movements for select using (wms_role() = any(array['admin','supervisor']));
+create policy p_moves on public.stock_movements for select to authenticated using (wms_role() = any(array['admin','supervisor']));
 
 -- activity_log: RLS dinyalakan TANPA policy sama sekali (baris ini yang
 -- membuatnya begitu — tidak ada "create policy" untuk tabel ini). Efeknya:

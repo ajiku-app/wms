@@ -31,7 +31,7 @@ create table if not exists public.stock_holds(
 create index if not exists stock_holds_active_idx on public.stock_holds(sku, batch, rack_code) where status = 'active';
 alter table public.stock_holds enable row level security;
 drop policy if exists p_holds on public.stock_holds;
-create policy p_holds on public.stock_holds for select using (wms_role() is not null);
+create policy p_holds on public.stock_holds for select to authenticated using (wms_role() is not null);
 do $$ begin
   if not exists (select 1 from pg_publication_tables where pubname='supabase_realtime' and schemaname='public' and tablename='stock_holds') then
     alter publication supabase_realtime add table public.stock_holds;

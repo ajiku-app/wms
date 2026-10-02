@@ -12,7 +12,7 @@ CREATE TABLE IF NOT EXISTS public.outbound_items(
 
 ALTER TABLE public.outbound_items ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS p_out_items ON public.outbound_items;
-CREATE POLICY p_out_items ON public.outbound_items FOR SELECT
+CREATE POLICY p_out_items ON public.outbound_items FOR SELECT TO authenticated
   USING (wms_role() = any(array['picker','admin','supervisor']));
 
 -- Mengganti seluruh item pesanan suatu dokumen outbound yang masih 'open'.
