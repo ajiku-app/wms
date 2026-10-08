@@ -71,7 +71,8 @@ memakainya — alur inbound selalu lewat Packing List → `wms_inbound_create` �
 | 14 | `migrate_v2_0_17_pallet_freeze_staging.sql` | **freeze opname, inbound wajib staging, kapasitas rak per pallet, pindah/putaway per pallet, pallet tidak ganda** |
 | 15 | `migrate_v2_0_18_hardening_k2.sql` | **hak eksekusi:** fungsi internal (`wms_log`, trigger) tertutup dari RPC (mencegah pemalsuan log) |
 | 16 | `migrate_v2_0_19_receive_staging.sql` | penerimaan inbound hanya ke GR-STAGING (pesan jelas, logika kapasitas ctn lama dihapus) |
-| 17 | `functions.sql` | **sumber kebenaran fungsi** (konsolidasi v2.0.17+18, 47 fungsi). Opsional di akhir untuk database baru; di database live jalankan hanya setelah diverifikasi dengan `export-snapshot.sql` query 6 |
+| 17 | `migrate_v2_0_20_outbound_muat.sql` | **data muat saat close outbound:** waktu mulai/selesai muat, no. kendaraan, ekspedisi, petugas muat (wajib). Pasang Scan v1.0.5 |
+| 18 | `functions.sql` | **sumber kebenaran fungsi** (konsolidasi v2.0.17–v2.0.20, 47 fungsi). Opsional di akhir untuk database baru; di database live jalankan hanya setelah diverifikasi dengan `export-snapshot.sql` query 6 |
 
 Utilitas: `reset_data_uji.sql` — mengosongkan data transaksi (master dipertahankan); **hanya untuk masa trial**.
 

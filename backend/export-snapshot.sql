@@ -57,7 +57,7 @@ WITH expected(proname, argtypes) AS (VALUES
   ('wms_opname_create','text,text,text'),
   ('wms_opname_post','text'),
   ('wms_opname_set_line','text,text,text,int'),
-  ('wms_outbound_complete','text,boolean'),
+  ('wms_outbound_complete','text,boolean,timestamptz,timestamptz,text,text,text'),
   ('wms_outbound_create','text,text,text,text,text'),
   ('wms_outbound_set_items','text,jsonb'),
   ('wms_pick','text,text,text,text,int,timestamptz,text'),

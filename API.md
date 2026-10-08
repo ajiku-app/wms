@@ -56,7 +56,7 @@ memanggil `wms_set_role`.
 | `fefo_allocate` | `p_doc, p_sku, p_qty` → return sisa yang tak terpenuhi (melewati stok hold, kedaluwarsa, dan GR-STAGING) | picker, admin, supervisor | Outbound — alokasi FEFO |
 | `wms_pick` | `p_doc, p_sku, p_batch, p_rack, p_qty` | picker, admin, supervisor | Outbound — catat pick, kurangi stok |
 | `wms_outbound_set_items` | `p_doc, p_items` (`[{sku, qty}]`) | picker, admin, supervisor | Outbound |
-| `wms_outbound_complete` | `p_doc, p_allow_short` (default false). Ditolak bila picking list kosong atau pesanan (`outbound_items`) belum terpenuhi; `p_allow_short=true` hanya berlaku untuk admin/supervisor | picker, admin, supervisor | Outbound |
+| `wms_outbound_complete` | `p_doc, p_allow_short` (default false), **`p_load_start, p_load_end` (timestamptz), `p_vehicle, p_expedition, p_loaders` (text) — semua WAJIB sejak v2.0.20**. Ditolak bila picking list kosong, picking belum lengkap, atau pesanan (`outbound_items`) belum terpenuhi; `p_allow_short=true` hanya berlaku untuk admin/supervisor. Data muat disimpan di `outbound_docs` (`load_start, load_end, vehicle_no, expedition, loaders`) | picker, admin, supervisor | Outbound |
 | `wms_move` | `p_sku, p_batch, p_from, p_to, p_qty` | inbound, admin, supervisor | Mutasi |
 | `wms_opname_create` | `p_no, p_sku, p_counter` | admin, supervisor | Stok Opname |
 | `wms_opname_set_line` | `p_doc, p_batch, p_rack, p_physical` | admin, supervisor | Stok Opname |

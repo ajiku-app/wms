@@ -110,3 +110,8 @@ bash rilis.sh 2.0.13 "pesan commit"   # commit + tag v2.0.13 + push -> installer
 ```
 `ci.yml` memeriksa sintaks JS di setiap push/PR dan memastikan tag = versi `desktop/package.json`.
 Migrasi database (`backend/migrate_*.sql`) **tidak** otomatis: jalankan manual di Supabase SQL Editor (backup dulu).
+
+## Alur Outbound & data muat (v2.0.20)
+1. Admin membuat DO + item pesanan → picking list FEFO dialokasikan.
+2. Picker meng-scan pallet (Scan) sesuai FEFO → barang ke staging area muat. Pallet yang sudah di-scan tidak bisa di-scan lagi.
+3. Proses muat. Setelah selesai, **checker** menutup DO di WMS (Outbound → Selesai Kirim) dan **wajib** mengisi waktu mulai & selesai muat, no. kendaraan, nama ekspedisi, dan petugas muat. Data tampil di detail DO dan tercatat di log aktivitas.

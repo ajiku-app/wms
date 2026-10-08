@@ -139,7 +139,8 @@ export const api = {
     sb.rpc('wms_outbound_create', { p_no: no, p_customer: customer, p_phone: phone, p_address: address, p_whs: whs || null }).then(unwrap),
   fefoAllocate: (doc, sku, qty) => sb.rpc('fefo_allocate', { p_doc: doc, p_sku: sku, p_qty: qty }).then(unwrap),
   pick: (doc, sku, batch, rack, qty) => sb.rpc('wms_pick', { p_doc: doc, p_sku: sku, p_batch: batch, p_rack: rack, p_qty: qty }).then(unwrap),
-  completeOutbound: (no, allowShort = false) => sb.rpc('wms_outbound_complete', { p_doc: no, p_allow_short: !!allowShort }).then(unwrap),
+  // v2.0.20: data muat wajib { start, end (ISO), vehicle, expedition, loaders }
+  completeOutbound: (no, allowShort = false, m = {}) => sb.rpc('wms_outbound_complete', { p_doc: no, p_allow_short: !!allowShort, p_load_start: m.start || null, p_load_end: m.end || null, p_vehicle: m.vehicle || null, p_expedition: m.expedition || null, p_loaders: m.loaders || null }).then(unwrap),
 
   // ---- mutasi ----
   listStockForMove: () => sb.from('stock').select('sku,batch,rack_code,qty').gt('qty', 0).order('rack_code').then(unwrap),
